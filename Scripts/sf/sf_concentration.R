@@ -4,6 +4,10 @@
 
 setwd("/Users/jamesledoux/Documents/Research/Thesis/Data/SF")
 
+library(rgdal)
+library(data.table)
+library(dplyr)
+library(ggplot2)
 
 #cleaned and merged DataFrame
 #all incidents reported in seattle xxxx to present (2011 for now, it appears)
