@@ -1,5 +1,6 @@
 #########################################
 # PORTLAND
+# shapefile metadata: https://www.portlandmaps.com/metadata/index.cfm?&action=DisplayLayer&LayerID=52058
 #########################################
 library(rgdal)
 library(data.table)
@@ -31,6 +32,8 @@ df = df[!grepl(' and ', df$Address),] #get rid of intersections
 df <- transform(df,segment_id=as.numeric(factor(Address)))
 
 df$Year = as.numeric(substr(df$ReportDate, nchar(df$ReportDate)-1, nchar(df$ReportDate)))
+df = df[df$Year != 11,]
+df = df[df$Year != 13,]
 
 #get total number of street segmets in the city
 transportation.shapefile = readOGR(dsn="pdxshapefile.geojson", layer="OGRGeoJSON", p4s="+proj=tmerc +ellps=WGS84")
@@ -46,6 +49,8 @@ transportation.shapefile = transportation.shapefile[transportation.shapefile$LCI
 
 #convert to standard coordinate dataframe
 #transportation.table <- fortify(transportation.shapefile)
+transportation.shapefile = transportation.shapefile[transportation.shapefile$RIGHT_JUR == 'PORT',]
+transportation.shapefile = transportation.shapefile[transportation.shapefile$LEFT_JUR == 'PORT',]
 num_segments = length(unique(transportation.shapefile$OBJECTID))
 cat("num segments: ", num_segments)
 
@@ -80,7 +85,12 @@ find_concentration = function(percent_of_all_crime, df){
 # values from figures 3 and 4
 # note: segment_id and id return the same value.. maybe we don't need to do the join?
 n_seg = find_concentration(0.5, df)
-pct_concentration = n_seg / num_segments
+pct_concentration = n_seg / 13550
+cat("Avg. pct. of segments to explain 50% of crime: ", pct_concentration*100, "%")
+
+n_seg = find_concentration(0.25, df)
+pct_concentration = n_seg / 13550
+cat("Avg. pct. of segments to explain 25% of crime: ", pct_concentration*100, "%")
 
 
 #### DOES THE LAW OF CRIME CONCENTRATION APPLY ACROSS TIME? ####
@@ -112,34 +122,43 @@ for(year in years_in_data){
 
 #convert raw counts to percentages
 # TODO: put these three serieses on a single, two-y-axis plot (total crime vs. 50 and 25% lines)
-concentration_time_series$all = concentration_time_series$all / num_segments
-concentration_time_series$fifty = concentration_time_series$fifty / num_segments
-concentration_time_series$twentyfive = concentration_time_series$twentyfive / num_segments
+concentration_time_series$all_pct = (concentration_time_series$all / num_segments) * 100
+concentration_time_series$fifty_pct = (concentration_time_series$fifty / num_segments)*100
+concentration_time_series$twentyfive_pct = (concentration_time_series$twentyfive / num_segments)*100
 concentration_time_series = concentration_time_series[order(-concentration_time_series$years_in_data),]
 
+#fix right axis. rotate the labels andshow the full number (no 'e' notation)
+#cat(crimetype)
+print(concentration_time_series)
+concentration_time_series = concentration_time_series
+mean(concentration_time_series$twentyfive_pct)
+mean(concentration_time_series$fifty_pct)
+mean(concentration_time_series$all_pct)
+
 # params for crime concentration plot
-start_yr = 4
-end_yr = 13
+start_yr = 2004
+end_yr = 2013
 y_min = 0
-y_max = 0.5
+y_max = 20
+
 
 print(concentration_time_series[concentration_time_series$years_in_data > (start_yr-1),])
-
+concentration_time_series$Yr = c(2014, 2012, 2010, 2009, 2008, 2007, 2006, 2005, 2004)
 par(mar = c(5,5,2,5))
-with(concentration_time_series, plot(concentration_time_series$years_in_data, 
-                                     concentration_time_series$fifty, type="l", 
+with(concentration_time_series, plot(concentration_time_series$Yr, 
+                                     concentration_time_series$fifty_pct, type="l", 
                                      col="red3", xlim=c(start_yr,end_yr), ylim=c(y_min,y_max), 
-                                     ylab="Concentration", xlab='Year'))
+                                     ylab="Concentration (%)", xlab='Year'))
 par(new = T)
-with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive
+with(concentration_time_series, plot(concentration_time_series$Yr, concentration_time_series$twentyfive_pct
                                      , pch=16, axes=F, xlab=NA, ylim=c(y_min,y_max), ylab=NA, 
                                      col='blue', type='l', xlim=c(start_yr,end_yr)))
 par(new = T)
-with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all
+with(concentration_time_series, plot(concentration_time_series$Yr, concentration_time_series$all
                                      , pch=16, axes=F, xlab=NA, ylim=c(y_min,y_max), ylab=NA,
                                      col='orange', type='l', xlim=c(start_yr,end_yr)))
 par(new = T)
-with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$total_crime
+with(concentration_time_series, plot(concentration_time_series$Yr, concentration_time_series$total_crime
                                      , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(start_yr,end_yr)))
 axis(side = 4)
 mtext(side = 4, line = 3, 'Incidents Reported')

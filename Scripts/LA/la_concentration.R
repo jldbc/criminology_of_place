@@ -37,21 +37,35 @@ names(df) <- gsub(x = names(df),
                   pattern = " ",
                   replacement = "")
 
+######################################################################
+# ATTN: CENTERLINE FILE APPEARS TO BE WRONG. FIND BETTER LA STREET CENTERLINE (CURRENT ONE INCLUDES NON LA STREETS I THINK)
+# num_segments = 69000 #hardcoding for now.. took this figure from http://bss.lacity.org/State_Streets/StateOfTheStreets.htm
+# also see: http://myladot.lacity.org/arcgis/rest/services/Basemap/MapServer/2  (might be able to get the num I want from their API)
+######################################################################
 # get total number of residential + arterial street segments in Seattle 
-# 24331 for now.. actual number should be a little smaller than this according to Weisburd
 # note: this will be slow since it loads and fortifies the geojson file
-transportation.shapefile = readOGR(dsn="la_streets.geojson", layer="OGRGeoJSON", p4s="+proj=tmerc +ellps=WGS84")
+# transportation.shapefile = readOGR(dsn="la_streets.geojson", layer="OGRGeoJSON", p4s="+proj=tmerc +ellps=WGS84")
 # smaller_shapefile = transportation.shapefile[which(transportation.shapefile$SND_FEACOD %in% list(1,5)),]
 # smaller_shapefile = smaller_shapefile[which(smaller_shapefile$SEGMENT_TY %in% list(1,5)),]
 # smaller_shapefile = smaller_shapefile[which(smaller_shapefile$CITYCODE==1),]
 # smaller_shapefile = smaller_shapefile[which(smaller_shapefile$ST_CODE %in% list(0,1,2,6,7,8)),]
 
+csv_centerline = read.csv("Street_Centerline.csv")
+#sort(table(csv_centerline$STREET_DES), ascending=FALSE)
+#drops = c("Divided Major Highway - Class II", "Major Highway - Class I", "Major Highway - Class II",
+#          "Major Highway Class II", "Modified Major Highway", "Modified Secondary Highway",
+#          "Scenic Divided Major Highway - Class II", "Scenic Divided Secondary Highway",
+#          "Scenic Major Highway - Class I", "Scenic Major Highway - Class II", "Scenic Secondary Highway",
+#          "Secondary Highway", "Und. or Prop. Divided Mjr Hwy - Class II", "nd. or Prop. Major Hwy - Class II",
+#          "Und. or Prop. Scenic Mjr Hwy - Class II", "Und. or Prop. Scenic Secondary Hwy", "Und. or Prop. Secondary Hwy")
+#csv_centerline = csv_centerline[!csv_centerline$STREET_DES %in% drops,]
+num_segments = length(unique(csv_centerline$ASSETID))
+cat("Number of street segments in Los Angeles: ", num_segments)
+avg_segment_length = mean(csv_centerline$SHAPE_Leng)
+cat("mean street segment length is ", avg_segment_length, " feet")
+
 #convert to standard coordinate dataframe
 #transportation.table <- fortify(smaller_shapefile)
-num_segments = length(unique(transportation.shapefile@data$OBJECTID))
-cat("Number of street segments in Los Angeles: ", num_segments)
-avg_segment_length = mean(transportation.shapefile@data$Shape_len)
-cat("mean street segment length is ", avg_segment_length, " feet")
 
 backup_df = df
 
@@ -67,18 +81,12 @@ sort(table(df$LOCATION), decreasing=T)
 
 #unique id for blocks (temporarily replacement for the joined data, since the join isn't working right yet)
 df <- transform(df,segment_id=as.numeric(factor(LOCATION)))
+
 frequencies = sort(table(df['segment_id']), decreasing=T)  #if tables not geojoined
+plot(frequencies)
 
 # get number of street segments with crime on them (13440)
 num_segments_with_crime = nrow(as.data.frame(frequencies))
-
-
-######################################################################
-# ATTN: CENTERLINE FILE APPEARS TO BE WRONG. FIND BETTER LA STREET CENTERLINE (CURRENT ONE INCLUDES NON LA STREETS I THINK)
-num_segments = 69000 #hardcoding for now.. took this figure from http://bss.lacity.org/State_Streets/StateOfTheStreets.htm
-# also see: http://myladot.lacity.org/arcgis/rest/services/Basemap/MapServer/2  (might be able to get the num I want from their API)
-######################################################################
-
 
 
 #find num segments accounting for x% of total crime
@@ -103,7 +111,11 @@ find_concentration = function(percent_of_all_crime, df){
 # note: segment_id and id return the same value.. maybe we don't need to do the join?
 n_seg = find_concentration(0.5, df)
 pct_concentration = n_seg / num_segments
+cat("Avg. pct. of segments to explain 50% of crime: ", pct_concentration*100, "%")
 
+n_seg = find_concentration(0.25, df)
+pct_concentration = n_seg / num_segments
+cat("Avg. pct. of segments to explain 25% of crime: ", pct_concentration*100, "%")
 
 #### DOES THE LAW OF CRIME CONCENTRATION APPLY ACROSS TIME? ####
 df = df[df$Year != "NA",]
@@ -133,43 +145,47 @@ for(year in years_in_data){
 
 #convert raw counts to percentages
 # TODO: put these three serieses on a single, two-y-axis plot (total crime vs. 50 and 25% lines)
-concentration_time_series$all = concentration_time_series$all / num_segments
-concentration_time_series$fifty = concentration_time_series$fifty / num_segments
-concentration_time_series$twentyfive = concentration_time_series$twentyfive / num_segments
+concentration_time_series$all_pct = (concentration_time_series$all / num_segments)*100
+concentration_time_series$fifty_pct = (concentration_time_series$fifty / num_segments)*100
+concentration_time_series$twentyfive_pct = (concentration_time_series$twentyfive / num_segments)*100
 concentration_time_series = concentration_time_series[order(-concentration_time_series$years_in_data),]
 
+concentration_time_series$years_in_data = as.integer(concentration_time_series$years_in_data) #this was a double for some reason
 #fix right axis. rotate the labels andshow the full number (no 'e' notation)
 #cat(crimetype)
 print(concentration_time_series[concentration_time_series$years_in_data > 2007,])
+mean(concentration_time_series$all_pct)
+mean(concentration_time_series$fifty_pct)
+mean(concentration_time_series$twentyfive_pct)
 
 # params for crime concentration plot
 start_yr = 2012
 end_yr = 2015
 y_min = 0
-y_max = 0.6
+y_max = 20
 
 print(concentration_time_series[concentration_time_series$years_in_data > (start_yr-1),])
 
 par(mar = c(5,5,2,5))
 with(concentration_time_series, plot(concentration_time_series$years_in_data, 
-                                     concentration_time_series$fifty, type="l", 
+                                     concentration_time_series$fifty_pct, type="l", 
                                      col="red3", xlim=c(start_yr,end_yr), ylim=c(y_min,y_max), 
-                                     ylab="Concentration", xlab='Year'))
+                                     ylab="Concentration", xlab='Year',xaxt='n'))
 par(new = T)
-with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive
+with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive_pct
                                      , pch=16, axes=F, xlab=NA, ylim=c(y_min,y_max), ylab=NA, 
                                      col='blue', type='l', xlim=c(start_yr,end_yr)))
-par(new = T)
-with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all
-                                     , pch=16, axes=F, xlab=NA, ylim=c(y_min,y_max), ylab=NA,
-                                     col='orange', type='l', xlim=c(start_yr,end_yr)))
+# par(new = T)
+# with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all
+#                                      , pch=16, axes=F, xlab=NA, ylim=c(y_min,y_max), ylab=NA,
+#                                      col='orange', type='l', xlim=c(start_yr,end_yr)))
 par(new = T)
 with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$total_crime
                                      , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(start_yr,end_yr)))
 axis(side = 4)
 mtext(side = 4, line = 3, 'Incidents Reported')
 
-
+axis(1, at=c(2012, 2013, 2014, 2015))
 legend("topleft",
        legend=c("Total Crime", "100%", "50%", "25%"),
        lty=c(1,0), pch=c(NA, 16), col=c("black", "orange", "red3", "blue"), cex=0.5)
@@ -177,7 +193,7 @@ legend("topleft",
 
 # How long do hotspots stay hot?
 y_0 = 2012 #starting year
-pct_concentration = 0.25
+pct_concentration = 0.5
 n = find_concentration(pct_concentration, df[df['Year']==y_0,])
 dffreq = df[df$Year==y_0,]
 frequencies = sort(table(dffreq['segment_id']), decreasing=T)
@@ -216,12 +232,12 @@ frequencies = sort(table(temp_df['segment_id']), decreasing=T)
 hotspot_segment_ids_50pct = names(frequencies)[1:n_seg_50pct]
 hotspot_segment_ids_25pct = names(frequencies)[1:n_seg_25pct]
 
-temp_df = temp_df[temp_df$segment_id %in% hotspot_segment_ids_50pct,]
+temp_df = temp_df[temp_df$segment_id %in% hotspot_segment_ids_25pct,]
 library(ggmap)
 #ggmap(seattle)
 
 mapdf = temp_df[,c("Lat","Long")]
 mapdf <- na.omit(mapdf)
 #ggmap(seattle) 
-qmap("los angeles", zoom = 13) + geom_point(data=mapdf, aes(x=Lat, y=Long), color="red", size=1, alpha=1)
+qmap("los angeles", zoom = 10) + geom_point(data=mapdf, aes(x=Lat, y=Long), color="red", size=1, alpha=1)
 

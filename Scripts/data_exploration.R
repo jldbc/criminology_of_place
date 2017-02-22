@@ -4,7 +4,11 @@ library(lattice)
 library(ggplot2)
 library(ggmap)
 library(lubridate)
+
+setwd("/Users/jamesledoux/Documents/Thesis")
 df <- fread("data/chicago_2001_present.csv", data.table = FALSE)
+names(df) <- sub(" ", "", names(df))
+names(df) <- sub(" ", "", names(df))
 names(df) <- sub(" ", "", names(df))
 
 #  Make sure the character strings represent date and times and then round to days

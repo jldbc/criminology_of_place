@@ -89,11 +89,11 @@ df = df[df$SummarizedOffenseDescription != 'CAR PROWL',]
     crime_count_to_explain = totalcrime*percent_of_all_crime
     #frequencies = sort(table(df['id']), decreasing=T)
     frequencies = sort(table(df['segment_id']), decreasing=T)  #if not joined
-    sum = 0
+    sum_ = 0
     n = 1
-    while(sum < crime_count_to_explain){
+    while(sum_ < crime_count_to_explain){
       #print(n)
-      sum = sum(frequencies[1:n])
+      sum_ = sum(frequencies[1:n])
       n = n+1
     }
     #print("number of segments needed: ")
@@ -105,11 +105,15 @@ df = df[df$SummarizedOffenseDescription != 'CAR PROWL',]
   # note: segment_id and id return the same value.. maybe we don't need to do the join?
   n_seg = find_concentration(0.5, df)
   pct_concentration = n_seg / num_segments
+  cat("Avg. pct. of segments to explain 50% of crime: ", pct_concentration*100, "%")
   
+  n_seg = find_concentration(0.25, df)
+  pct_concentration = n_seg / num_segments
+  cat("Avg. pct. of segments to explain 25% of crime: ", pct_concentration*100, "%")
   
   #### DOES THE LAW OF CRIME CONCENTRATION APPLY ACROSS TIME? ####
   df = df[df$Year != "NA",]
-  years_in_data = unique(df$Year)
+  years_in_data = as.numeric(names(table(df$Year)))  #unique(df$Year)
   crimes_per_year = table(df['Year'])#, decreasing=T)
   #note: this plot looks funky because the data is subsetted weird here due to the failed join earlier
   #plot(crimes_per_year)  #use ggplot later to make this look nice
@@ -124,7 +128,7 @@ df = df[df$SummarizedOffenseDescription != 'CAR PROWL',]
     if(year>2007){  #pre-2009 data looks sketchy in this
       fifty = find_concentration(0.5, df[df['Year']==year,])
       twentyfive = find_concentration(0.25, df[df['Year']==year,])
-      all = find_concentration(1, df[df['Year']==year,])
+      all = find_concentration(.99, df[df['Year']==year,])
       concentration_time_series[concentration_time_series$years_in_data==year,]$all = all
       concentration_time_series[concentration_time_series$years_in_data==year,]$fifty = fifty
       concentration_time_series[concentration_time_series$years_in_data==year,]$twentyfive = twentyfive
@@ -134,31 +138,35 @@ df = df[df$SummarizedOffenseDescription != 'CAR PROWL',]
   
   #convert raw counts to percentages
   # TODO: put these three serieses on a single, two-y-axis plot (total crime vs. 50 and 25% lines)
-  concentration_time_series$all = concentration_time_series$all / num_segments
-  concentration_time_series$fifty = concentration_time_series$fifty / num_segments
-  concentration_time_series$twentyfive = concentration_time_series$twentyfive / num_segments
+  concentration_time_series$all_pct = (concentration_time_series$all / num_segments) * 100
+  concentration_time_series$fifty_pct = (concentration_time_series$fifty / num_segments)*100
+  concentration_time_series$twentyfive_pct = (concentration_time_series$twentyfive / num_segments)*100
   concentration_time_series = concentration_time_series[order(-concentration_time_series$years_in_data),]
   
   #fix right axis. rotate the labels andshow the full number (no 'e' notation)
-  cat(crimetype)
+  #cat(crimetype)
   print(concentration_time_series[concentration_time_series$years_in_data > 2007,])
+  concentration_time_series = concentration_time_series[concentration_time_series$years_in_data > 2007 & concentration_time_series$years_in_data < 2016,]
+  mean(concentration_time_series$twentyfive_pct)
+  mean(concentration_time_series$fifty_pct)
+  mean(concentration_time_series$all_pct)
   
   par(mar = c(5,5,2,5))
   with(concentration_time_series, plot(concentration_time_series$years_in_data, 
-                                       concentration_time_series$fifty, type="l", 
-                                       col="red3", xlim=c(2008,2016), ylim=c(0,.5), 
-                                       ylab="Concentration", xlab='Year', title=crimetype))
+                                       concentration_time_series$fifty_pct, type="l", 
+                                       col="red3", xlim=c(2008,2015), ylim=c(0,20), 
+                                       ylab="Concentration (%)", xlab='Year'))
   par(new = T)
-  with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive
-                                       , pch=16, axes=F, xlab=NA, ylim=c(0,.5), ylab=NA, 
-                                       col='blue', type='l', xlim=c(2008,2016)))
+  with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive_pct
+                                       , pch=16, axes=F, xlab=NA, ylim=c(0,20), ylab=NA, 
+                                       col='blue', type='l', xlim=c(2008,2015)))
   par(new = T)
-  with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all
-                                       , pch=16, axes=F, xlab=NA, ylim=c(0,.5), ylab=NA,
-                                       col='orange', type='l', xlim=c(2008,2016)))
+  #with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all
+  #                                     , pch=16, axes=F, xlab=NA, ylim=c(0,.5), ylab=NA,
+  #                                     col='orange', type='l', xlim=c(2008,2016)))
   par(new = T)
   with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$total_crime
-                                       , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(2008,2016), title=crimetype))
+                                       , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(2008,2015)))
   axis(side = 4)
   mtext(side = 4, line = 3, 'Incidents Reported')
 #}
