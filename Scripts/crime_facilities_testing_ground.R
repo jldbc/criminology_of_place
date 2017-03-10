@@ -118,7 +118,7 @@ df = df[, c("Block","segment_id", "CommunityArea", "Latitude", "Longitude", "is_
 ####
 
 new_df = df[!duplicated(df$segment_id),] #note: approx. 1/3 of street segments don't have a community area attached to them 
-counts_2015_df = df %>% count(segment_id, Year) %>% filter(Year==2015) #head(20)
+counts_2015_df = df[df$count==1,] %>% count(segment_id, Year) %>% filter(Year==2015) #head(20) #crime count / yr (but only count the violent ones)
 new_df = merge(x = new_df, y = counts_2015_df, by = "segment_id", all.x = TRUE) #merge counts where we have them
 new_df[is.na(new_df$n), 'n'] = 0
 columns_to_keep = c('segment_id', 'Block', 'CommunityArea', 'Latitude', 'Longitude',
@@ -208,6 +208,7 @@ dists = distm(new_df[,c("Latitude", "Longitude")], c(41.8781, -87.6298))
 out = apply(dists, 1, function(x) sum(x<3218.69)) #within 2 mi of downtown
 new_df$dist_to_city_center = dists
 new_df$close_to_downtown = out
+new_df$log_dist_city_center = log(dists)  #need to add this to regressions
 
 
 #### vacant property ####
@@ -255,7 +256,7 @@ out = apply(dists, 1, function(x) sum(x<243 & x>=121))
 new_df[40000:nrow(new_df), c('vacant_land_800ft')] = out
 
 
-###########  BUS STOPS  ###############
+###########  BUS STOPS  ###############  (chunk this into groups of 10k distance matrices)
 # need to break this into chunks similar to how I did with the vacant land)
 bus_stops = read.csv("bus_routes_chicago.csv")
 bus_stops <- bus_stops %>% extract(location, c('Latitude', 'Longitude'), '\\(([^,]+), ([^)]+)\\)')
@@ -274,42 +275,75 @@ new_df$bus_stops_800ft = out
 # mapdf <- na.omit(mapdf)
 # qmap("chicago", zoom = 11) + geom_point(data=mapdf, aes(x=Longitude, y=Latitude), color="red", size=1, alpha=1)
 
-###########  BUSINESS LICENSES  ###############
+###########  BUSINESS LICENSES  ###############   (need to add features + calculate distance matrices)
 
-
-
-
-
-
-
-
+businesses = read.csv('business_licenses_chicago.csv')
+businesses = businesses[businesses$CITY=='CHICAGO',]
+#sort(table(businesses$LICENSE.DESCRIPTION))   #see which types of business are in the data
+businesses = businesses[businesses$LICENSE.DESCRIPTION != 'Tavern',] #we already have data on bars
+general_business = businesses[businesses$LICENSE.DESCRIPTION %in% c('Limited Business License', 'Regulated Business License'),]
+food = businesses[businesses$LICENSE.DESCRIPTION %in% c('Retail Food Establishment', 'Consumption on Premises - Incidental Activity'),]
+parking_garages = businesses[businesses$LICENSE.DESCRIPTION %in% c('Public Garage', 'Accessory Garage'),]
+liquor_stores = businesses[businesses$LICENSE.DESCRIPTION =='Package Goods',]
+childrens_services_and_daycare = businesses[businesses$LICENSE.DESCRIPTION == "Children's Services Facility License",]
+animal_care = businesses[businesses$LICENSE.DESCRIPTION == "Animal Care License",]
+gas_station = businesses[businesses$LICENSE.DESCRIPTION == "Filling Station",]
+pawn = businesses[businesses$LICENSE.DESCRIPTION == "Pawnbroker",]
+arts_music = businesses[businesses$LICENSE.DESCRIPTION %in% c('Performing Arts Venue', 'Music and Dance'),]
+# places of amusement? seems to be a problematic overlap w/ bars in this license. an interaction might fix this though. 
 
 
 ###########  GROCERY STORES  ###############
+groceries = read.csv('grocery_stores_2013_chicago.csv')
+dists = distm(new_df[,c("Latitude", "Longitude")], groceries[,c("LATITUDE", "LONGITUDE")])
+out = apply(dists, 1, function(x) sum(x<121)) #121 m. ~ 400 ft. ~ one segment length
+new_df$groceries_400ft = out
+out = apply(dists, 1, function(x) sum(x<243 & x>=121))
+new_df$groceries_800ft = out
 
 
-
-
-
-
-
-
-
-
-
-###########  GRAFFITI  ###############
+###########  GRAFFITI  ###############  (break this job into subsections)
 graffiti = read.csv('/Users/jamesledoux/Documents/Research/Thesis/Data/chicago/graffiti_removal.csv')
+#remove duplicate reports
+graffiti= graffiti[graffiti$Status != "Completed - Dup",]
+graffiti= graffiti[graffiti$Status != "Open - Dup",]
 #get year as a feature then select only graffiti removals that happened that year or the year before
-graffiti$Year =   
-#remove -Dup status rows
-  
-#do distance matrix
+graffiti$Creation.Date = as.character(graffiti$Creation.Date)
+graffiti$Year = as.numeric(substr(graffiti$Creation.Date, nchar(graffiti$Creation.Date)-3, nchar(graffiti$Creation.Date)))
+graffiti = graffiti[graffiti$Year %in% c(hotspot_year-1, hotspot_year),]
 
+new_df$graffiti_400ft = 0
+new_df$graffiti_800ft = 0
 
+dists = distm(new_df[1:10000,c("Latitude", "Longitude")], graffiti[,c("Latitude", "Longitude")])
+out = apply(dists, 1, function(x) sum(x<121)) #121 m. ~ 400 ft. ~ one segment length
+new_df[1:10000, c('graffiti_400ft')] = out
+out = apply(dists, 1, function(x) sum(x<243 & x>=121))
+new_df[1:10000, c('graffiti_800ft')] = out
 
+dists = distm(new_df[10001:20000,c("Latitude", "Longitude")], graffiti[,c("Latitude", "Longitude")])
+out = apply(dists, 1, function(x) sum(x<121)) #121 m. ~ 400 ft. ~ one segment length
+new_df[10001:20000, c('graffiti_400ft')] = out
+out = apply(dists, 1, function(x) sum(x<243 & x>=121))
+new_df[10001:20000, c('graffiti_800ft')] = out
 
+dists = distm(new_df[20001:30000,c("Latitude", "Longitude")], graffiti[,c("Latitude", "Longitude")])
+out = apply(dists, 1, function(x) sum(x<121)) #121 m. ~ 400 ft. ~ one segment length
+new_df[20001:30000, c('graffiti_400ft')] = out
+out = apply(dists, 1, function(x) sum(x<243 & x>=121))
+new_df[20001:30000, c('graffiti_800ft')] = out
 
+dists = distm(new_df[30001:40000,c("Latitude", "Longitude")], graffiti[,c("Latitude", "Longitude")])
+out = apply(dists, 1, function(x) sum(x<121)) #121 m. ~ 400 ft. ~ one segment length
+new_df[30001:40000, c('graffiti_400ft')] = out
+out = apply(dists, 1, function(x) sum(x<243 & x>=121))
+new_df[30001:40000, c('graffiti_800ft')] = out
 
+dists = distm(new_df[40000:nrow(new_df),c("Latitude", "Longitude")], graffiti[,c("Latitude", "Longitude")])
+out = apply(dists, 1, function(x) sum(x<121)) #121 m. ~ 400 ft. ~ one segment length
+new_df[40000:nrow(new_df), c('graffiti_400ft')] = out
+out = apply(dists, 1, function(x) sum(x<243 & x>=121))
+new_df[40000:nrow(new_df), c('graffiti_800ft')] = out
 
 
 ###########  SENIOR CENTERS  #############
@@ -353,20 +387,51 @@ new_df$parks_800ft = out
 # mapdf <- na.omit(mapdf)
 # qmap("chicago", zoom = 13) + geom_point(data=mapdf, aes(x=Longitude, y=Latitude), color="red", size=1, alpha=1)
 
+###### bring in census tract age data ######
+# - read in census tract shapefile. 
+# - assign each st. segment to its census tract to get this feature in the dataframe. 
+# - read in census-tract-level population age data
+# - clean census tract column so that it ends after first column (matching the other data's census tract naming scheme)
+# - merge age data onto crime data on census tract columns
+census_tract_boundaries = readOGR('census_tracts.geojson')
+coordinates(new_df) <- c("Longitude", "Latitude")
+proj4string(new_df) = proj4string(census_tract_boundaries) #we can do this since we know they use the same point system
+new_df$census_tract = over(new_df, census_tract_boundaries)$namelsad10
+new_df = as.data.frame(new_df)
+
+population_age = read.csv("census_block_ages.csv")
+population_age$Geography = gsub("(.*),.*", "\\1", population_age$Geography)  #keep only the census tract from this column
+population_age$Geography = gsub("(.*),.*", "\\1", population_age$Geography)  
+
+new_df = merge(x = new_df, y = population_age, by.x = "census_tract", by.y="Geography", all.x = TRUE)
 
 ##### bring in demographic data #####
 community_data = read.csv('socioeconomic_indicators.csv')
 
 new_df_merged = merge(x = new_df, y = community_data, by.x = "CommunityArea", by.y="Community.Area.Number", all.x = TRUE)
 
+#mean impute the data.. NAs are for O'Hare airport, which is a unique case
+for(i in 1:ncol(new_df_merged)){
+  new_df[is.na(new_df_merged[,i]), i] <- mean(new_df_merged[,i], na.rm = TRUE)
+}
 
-model = lm(data=new_df_merged, formula = "is_hotspot_25 ~ schools_400ft + schools_800ft + subway_400ft + 
-           subway_800ft + bars_400ft + bars_800ft + dist_to_city_center + close_to_downtown + drug_centers_400ft +
-           drug_centers_800ft + vacant_land_400ft + vacant_land_800ft + PERCENT.OF.HOUSING.CROWDED + 
-           PERCENT.HOUSEHOLDS.BELOW.POVERTY + PERCENT.AGED.16..UNEMPLOYED + 
-           PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA + bus_stops_400ft + bus_stops_800ft +
-           senior_centers_400ft + senior_centers_800ft")
-summary(model)
+new_df_merged = new_df_merged[new_df_merged$CommunityArea != 0,]
+
+all_features_count = "n ~ schools_400ft + schools_800ft + subway_400ft + subway_800ft + bars_400ft + bars_800ft + \
+                      log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + \
+bus_stops_400ft + bus_stops_800ft + groceries_400ft + groceries_800ft + senior_centers_400ft + senior_centers_800ft + \
+parks_400ft + parks_800ft + PERCENT.OF.HOUSING.CROWDED + PERCENT.AGED.16..UNEMPLOYED + PERCENT.AGED.UNDER.18.OR.OVER.64 + \
+HARDSHIP.INDEX + PER.CAPITA.INCOME + PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA + PERCENT.HOUSEHOLDS.BELOW.POVERTY + \
+businesses_400ft + businesses_800ft + restaurants_400ft + restaurants_800ft + parking_garagess_400ft + \
+parking_garages_800ft + liquor_stores_400ft + liquor_storess_800ft + daycares_400ft + daycares_800ft + \
+animal_care_400ft + animal_care_800ft + gas_stations_400ft + gas_stations_800ft + pawn_400ft + pawn_800ft + \
+arts_venues_400ft + arts_venues_800ft + graffiti_400ft + graffiti_800ft + X5_9 + X10_14 + X15_19 + X20_24 + \
+X25_29 + X30_34  + X35_39 + X40_44 + X45_49 + X50_54 + X55_59 + X60_64 + X65_69 + X70_74 + X75_79 + X80_84 + X85_plus"
+
+
+all_features_count = "n ~ X20_24 + X85_plus"
+
+summary(lm(data=new_df_merged, all_features_count))
 
 
 ### log wages??? ####
