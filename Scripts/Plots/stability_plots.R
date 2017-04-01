@@ -39,10 +39,22 @@ for(j in c(0,4)){
   #print(j)
   #parentheses needed
   cities = cities_all[(1+j):(4+j)] #skip forward 4 indexes to do the other half of the sample for plot #2
-  par(mar = c(5,5,2,5), mfrow=c(2,2))
+  par(mar = c(5,5,2,5), mfrow=c(2,2), xpd=FALSE)
   #print(cities)
   #print(cities_all)
   for(i in 1:4){
+    if(i%%2!=0){
+      right_y_axis = ''
+      left_y_axis = 'Concentration (%)'
+    }else{
+      right_y_axis = "Incidents Reported"
+      left_y_axis = ''
+    }
+    if(i>2){
+      x_axis = "Year"
+    }else{
+      x_axis = ''
+    }
     city=cities[[i]]
     concentration_time_series = concentration_time_series_orig[concentration_time_series_orig['city']==city,]
     start_yr = min(concentration_time_series$years_in_data)
@@ -50,7 +62,7 @@ for(j in c(0,4)){
     plot(concentration_time_series$years_in_data, 
                                          concentration_time_series$fifty_pct, type="l", 
                                          col="red3", xlim=c(start_yr,end_yr), ylim=c(y_min,y_max), 
-                                         ylab="Concentration (%)", xlab='Year', xaxt='n', main=city)
+                                         ylab=left_y_axis, xlab=x_axis, xaxt='n', main=city)
     par(new = T)
     plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive_pct
                                          , pch=16, axes=F, xlab=NA, ylim=c(y_min,y_max), ylab=NA, 
@@ -63,9 +75,11 @@ for(j in c(0,4)){
     plot(concentration_time_series$years_in_data, concentration_time_series$total_crime
                                          , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(start_yr,end_yr))
     axis(side = 4)
-    mtext(side = 4, line = 3, 'Incidents Reported')
+    mtext(side = 4, line = 3, right_y_axis, cex=.85 )
     
     axis(1, at=start_yr:end_yr)
   }
 }
-
+# 
+# par(xpd=TRUE)
+# legend(2.8,-1,c("group A", "group B"), pch = c(1,2), lty = c(1,2))
