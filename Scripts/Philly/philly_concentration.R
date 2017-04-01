@@ -2,7 +2,6 @@ library(rgdal)
 library(data.table)
 library(dplyr)
 library(ggplot2)
-library(crimCV)
 
 
 ###################################
@@ -25,7 +24,19 @@ df = df[!grepl('/', df$LocationBlock),] #get rid of intersections
 df = df[grepl('BLOCK', df$LocationBlock),] #get rid of intersections
 reports_sans_intersections = nrow(df)
 pct_crime_at_intersections = 1 - (reports_sans_intersections/total_num_reports)
-cat("Percent of crime at intersections: ", pct_crime_at_intersections)
+cat("Percent of crime at intersections in Seattle: ", pct_crime_at_intersections)
+
+# from weisburd: 
+# property (e.g., burglary and property destruction), personal (e.g., homicide, assault, and robbery), 
+# disorder (e.g., graffiti and abandoned vehicles), drugs, prostitution, and traffic-related crimes 
+# (e.g., drunk driving and hit and run)
+
+#just keep the violent crimes
+keeps = c('Burglary Residential', 'Burglary Non-Residential', 'Vandalism/Criminal Mischief', 'Homicide - Criminal',
+          'Homicide - Gross Negligence', 'Homicide - Justifiable', 'Aggravated Assault Firearm', 'Aggravated Assault No Firearm',
+          'Other Assaults', 'Robbery Firearm', 'Robbery No Firearm', 'Recovered Stolen Motor Vehicle', 'Narcotic / Drug Law Violations',
+          'Prostitution and Commercialized Vice', 'DRIVING UNDER THE INFLUENCE')
+df = df[df$GeneralCrimeCategory %in% keeps,]
 
 df$Year = as.numeric(substr(df$DispatchDate, 1,4))
 
@@ -133,28 +144,29 @@ concentration_time_series = concentration_time_series[concentration_time_series$
 mean(concentration_time_series$twentyfive_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$all_pct)
-
-
 #fix right axis. rotate the labels andshow the full number (no 'e' notation)
 #cat(crimetype)
 print(concentration_time_series[concentration_time_series$years_in_data > 2007,])
 
+write.csv(concentration_time_series, '../Concentration_Levels/concentration_levels_philadelphia.csv')
+
+
 par(mar = c(5,5,2,5))
 with(concentration_time_series, plot(concentration_time_series$years_in_data, 
                                      concentration_time_series$fifty_pct, type="l", 
-                                     col="red3", xlim=c(2008,2016), ylim=c(0,20), 
+                                     col="red3", xlim=c(2008,2015), ylim=c(0,20), 
                                      ylab="Concentration", xlab='Year'))
 par(new = T)
 with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive_pct
                                      , pch=16, axes=F, xlab=NA, ylim=c(0,20), ylab=NA, 
-                                     col='blue', type='l', xlim=c(2008,2016)))
+                                     col='blue', type='l', xlim=c(2008,2015)))
 # par(new = T)
 # with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all
 #                                      , pch=16, axes=F, xlab=NA, ylim=c(0,.5), ylab=NA,
-#                                      col='orange', type='l', xlim=c(2008,2016)))
+#                                      col='orange', type='l', xlim=c(2008,2015)))
 par(new = T)
 with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$total_crime
-                                     , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(2008,2016)))
+                                     , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(2008,2015)))
 axis(side = 4)
 mtext(side = 4, line = 3, 'Incidents Reported')
 #}
@@ -187,8 +199,9 @@ for(j in y_0:2016){
 }
 
 plot(vals)
-
-
+vals_df = data.frame(vals)
+vals_df$year = 2006:2016
+write.csv(vals_df, "../Dropoff_Rates/dropoff_philadelphia.csv")
 ###### plot the points existing on segments accounting for 50%, 25% of total crime ########
 
 temp_df = df[df$Year==2014,]

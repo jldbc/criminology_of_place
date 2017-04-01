@@ -51,18 +51,21 @@ names(df) <- gsub(x = names(df),
 # smaller_shapefile = smaller_shapefile[which(smaller_shapefile$ST_CODE %in% list(0,1,2,6,7,8)),]
 
 csv_centerline = read.csv("Street_Centerline.csv")
-#sort(table(csv_centerline$STREET_DES), ascending=FALSE)
-#drops = c("Divided Major Highway - Class II", "Major Highway - Class I", "Major Highway - Class II",
-#          "Major Highway Class II", "Modified Major Highway", "Modified Secondary Highway",
-#          "Scenic Divided Major Highway - Class II", "Scenic Divided Secondary Highway",
-#          "Scenic Major Highway - Class I", "Scenic Major Highway - Class II", "Scenic Secondary Highway",
-#          "Secondary Highway", "Und. or Prop. Divided Mjr Hwy - Class II", "nd. or Prop. Major Hwy - Class II",
-#          "Und. or Prop. Scenic Mjr Hwy - Class II", "Und. or Prop. Scenic Secondary Hwy", "Und. or Prop. Secondary Hwy")
-#csv_centerline = csv_centerline[!csv_centerline$STREET_DES %in% drops,]
+#table(csv_centerline$STREET_DES)
+drops = c("Divided Major Highway - Class II", "Major Highway - Class I", "Major Highway - Class II",
+          "Major Highway Class II", "Modified Major Highway", "Modified Secondary Highway",
+          "Scenic Divided Major Highway - Class II", "Scenic Divided Secondary Highway",
+          "Scenic Major Highway - Class I", "Scenic Major Highway - Class II", "Scenic Secondary Highway",
+          "Secondary Highway", "Und. or Prop. Divided Mjr Hwy - Class II", "nd. or Prop. Major Hwy - Class II",
+          "Und. or Prop. Scenic Mjr Hwy - Class II", "Und. or Prop. Scenic Secondary Hwy", "Und. or Prop. Secondary Hwy")
+csv_centerline = csv_centerline[!csv_centerline$STREET_DES %in% drops,]
 num_segments = length(unique(csv_centerline$ASSETID))
 cat("Number of street segments in Los Angeles: ", num_segments)
 avg_segment_length = mean(csv_centerline$SHAPE_Leng)
 cat("mean street segment length is ", avg_segment_length, " feet")
+
+
+num_segments = 84018  # unfiltered no. of street segments
 
 #convert to standard coordinate dataframe
 #transportation.table <- fortify(smaller_shapefile)
@@ -74,13 +77,33 @@ backup_df = df
 
 #fix address names (spaces are inconsistent so we need to drop them)
 df$LOCATION <- gsub(x = df$LOCATION,
-                  pattern = " ",
-                  replacement = "")
+                    pattern = " ",
+                    replacement = "")
 #see the names of the worst street segments (mostly curious if I'm still picking up traffic offenses on highways)
-sort(table(df$LOCATION), decreasing=T)
+#sort(table(df$LOCATION), decreasing=T)
 
 #unique id for blocks (temporarily replacement for the joined data, since the join isn't working right yet)
 df <- transform(df,segment_id=as.numeric(factor(LOCATION)))
+
+
+# from weisburd: 
+# property (e.g., burglary and property destruction), personal (e.g., homicide, assault, and robbery), 
+# disorder (e.g., graffiti and abandoned vehicles), drugs, prostitution, and traffic-related crimes 
+# (e.g., drunk driving and hit and run)
+
+#sort(table(df$CrmCd.Desc), decreasing=T)
+keeps = c('BURGLARY', 'BURGLARY FROM VEHICLE', 'BURGLARY FROM VEHICLE, ATTEMPTED', 'BURGLARY, ATTEMPTED',
+          'THROWING OBJECT AT MOVING VEHICLE', 'VANDALISM - FELONY ($400 & OVER, ALL CHURCH VANDALISMS)',
+          'VANDALISM - MISDEAMEANOR ($399 OR UNDER)', 'TELEPHONE PROPERTY - DAMAGE', 'SHOTS FIRED AT INHABITED DWELLING',
+          'SHOTS FIRED AT MOVING VEHICLE, TRAIN OR AIRCRAFT', 'SHOTS INHABITED DWELLING', 'MANSLAUGHTER, NEGLIGENT',
+          'CRIMINAL HOMICIDE', 'ASSAULT WITH DEADLY WEAPON ON POLICE OFFICER', 'ASSAULT WITH DEADLY WEAPON, AGGRAVATED ASSAULT',
+          'BATTERY - SIMPLE ASSAULT', 'BATTERY FIREMAN', 'BATTERY ON A FIREFIGHTER', 'BATTERY POLICE', 'BATTERY WITH SEXUAL CONTACT',
+          'CHILD ABUSE (PHYSICAL) - AGGRAVATED ASSAULT', 'CHILD ABUSE (PHYSICAL) - SIMPLE ASSAULT', 'OTHER ASSAULT',
+          'SPOUSAL(COHAB) ABUSE - SIMPLE ASSAULT', 'SPOUSAL (COHAB) ABUSE - AGGRAVATED ASSAULT', 'ROBBERY', 'DRUGS, TO A MINOR',
+          'PIMPING', 'SEX, UNLAWFUL', 'DRIVING WITHOUT OWNER CONSENT (DWOC)', 'FAILURE TO YIELD', 'RECKLESS DRIVING',
+          'TRAFFIC DR #')  #'DISCHARGE FIREARMS/SHOTS FIRED'  is SEX, UNLAWFUL prostitution? Missing drugs / narcotics?? this is weird. only have it when sold to children. 
+df = df[df$CrmCd.Desc %in% keeps,]
+
 
 frequencies = sort(table(df['segment_id']), decreasing=T)  #if tables not geojoined
 plot(frequencies)
@@ -117,9 +140,15 @@ n_seg = find_concentration(0.25, df)
 pct_concentration = n_seg / num_segments
 cat("Avg. pct. of segments to explain 25% of crime: ", pct_concentration*100, "%")
 
+
 #### DOES THE LAW OF CRIME CONCENTRATION APPLY ACROSS TIME? ####
 df = df[df$Year != "NA",]
 df = df[df$Year != "NA",]
+df = df[df$Year != "NA",]
+df = df[df$Year != "NA",]
+df = df[df$Year != "NA",]
+df = df[df$Year != "NA",]
+
 years_in_data = unique(df$Year)
 crimes_per_year = table(df['Year'])#, decreasing=T)
 #note: this plot looks funky because the data is subsetted weird here due to the failed join earlier
@@ -158,6 +187,8 @@ mean(concentration_time_series$all_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$twentyfive_pct)
 
+write.csv(concentration_time_series, "../Concentration_Levels/concentration_levels_la.csv")
+
 # params for crime concentration plot
 start_yr = 2012
 end_yr = 2015
@@ -184,8 +215,9 @@ with(concentration_time_series, plot(concentration_time_series$years_in_data, co
                                      , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(start_yr,end_yr)))
 axis(side = 4)
 mtext(side = 4, line = 3, 'Incidents Reported')
-
 axis(1, at=c(2012, 2013, 2014, 2015))
+
+
 legend("topleft",
        legend=c("Total Crime", "100%", "50%", "25%"),
        lty=c(1,0), pch=c(NA, 16), col=c("black", "orange", "red3", "blue"), cex=0.5)

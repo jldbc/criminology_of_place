@@ -9,7 +9,16 @@ setwd("/Users/jamesledoux/Documents/Research/Thesis/Data/chicago")
 
 
 #cleaned and merged DataFrame
+#all incidents reported in seattle xxxx to present (2011 for now, it appears)
+#note: this is incomplete data until I find a way to fix the failed merge from earlier
 df = fread("chicago_2001_present.csv", data.table=FALSE)
+
+#####  dropping non arterial / residential segments (see shapefile for CHI versions of these) #####
+#df = df[which(df$SND_FEACOD %in% list(1,5)),]
+#df = df[which(df$SEGMENT_TY %in% list(1,5)),]
+#df = df[which(df$CITYCODE==1),]
+# also: how do I find intersections in this data? they aren't in the block description apparently
+#################################################
 
 #drop spaces in column names
 names(df) <- gsub(x = names(df),
@@ -19,28 +28,35 @@ names(df) <- gsub(x = names(df),
 #unique id for blocks (temporarily replacement for the joined data, since the join isn't working right yet)
 df <- transform(df,segment_id=as.numeric(factor(Block)))
 
+#filter out crime types that Weisburd did not consider
+#sort(table(df$PrimaryType), decreasing=T)
+
+# from weisburd: 
+# property (e.g., burglary and property destruction), personal (e.g., homicide, assault, and robbery), 
+# disorder (e.g., graffiti and abandoned vehicles), drugs, prostitution, and traffic-related crimes 
+# (e.g., drunk driving and hit and run)
+
+keeps = c('BURGLARY', 'CRIMINAL DAMAGE', 'HOMICIDE', 'ASSAULT', 'CRIM SEXUAL ASSAULT', 'BATTERY',
+          'ROBBERY', 'NARCOTICS', 'OTHER NARCOTIC VIOLATION', 'PROSTITUTION')  #BATTERY?? also, no traffic-related or DUI crime in this dataset
+
+df = df[df$PrimaryType %in% keeps,]
+
 #get total number of street segmets in the city
-# transportation.shapefile = readOGR(dsn="Transportation.geojson", layer="OGRGeoJSON", p4s="+proj=tmerc +ellps=WGS84")
-#filter out highways, rivers and ramps
-# transportation.shapefile = transportation.shapefile[!transportation.shapefile@data$CLASS %in% c('1', '9', 'RIV'),]
-### transportation.shapefile = transportation.shapefile[!transportation.shapefile@data$CLASS %in% c('1', 'RIV'),]
-# #transportation.shapefile = transportation.shapefile[!transportation.shapefile@data$STREET_TYP %in% c('EXPY', 'HWY', 'VIA', 'WAY'),]
-###transportation.shapefile = transportation.shapefile[!transportation.shapefile@data$STREET_TYP %in% c('EXPY', 'HWY'),]
-num_segments = nrow(transportation.shapefile@data)
+transportation.shapefile = readOGR(dsn="Transportation.geojson", layer="OGRGeoJSON", p4s="+proj=tmerc +ellps=WGS84")
+
+####################################################################################
+# TODO: get chicago equivalent of this. weed out non arterial and residential streets #####
+# smaller_shapefile = transportation.shapefile[which(transportation.shapefile$SND_FEACOD %in% list(1,5)),]
+# smaller_shapefile = smaller_shapefile[which(smaller_shapefile$SEGMENT_TY %in% list(1,5)),]
+# smaller_shapefile = smaller_shapefile[which(smaller_shapefile$CITYCODE==1),]
+####################################################################################
 
 #convert to standard coordinate dataframe
-# transportation.table <- fortify(transportation.shapefile)
-# num_segments = length(unique(transportation.table$id))
-#num_segments = 52887 # (hardcode this in to save time)
-#num_segments = 54050 # a little bit looser about what I cut out from the shapefile 
-num_segments = 56320   #all of them, since we can't filter out highways accurately in the cime data
+#transportation.table <- fortify(transportation.shapefile)
+#num_segments = length(unique(transportation.table$id))
+num_segments = nrow(transportation.shapefile@data)
 cat("num segments: ", num_segments)
 
-#cat("average segment length: ", mean(transportation.shapefile@data$LENGTH), " ft.")
-cat("average segment length: ",415.9804, " ft.")
-
-#drop the 'other' crimes
-df = df[!df$PrimaryType %in% c("OTHER OFFENSE"),]
 # incidents observed by street segment ID
 #frequencies = sort(table(df['id']), decreasing=T) 
 frequencies = sort(table(df['segment_id']), decreasing=T)
@@ -71,10 +87,6 @@ find_concentration = function(percent_of_all_crime, df){
 
 # values from figures 3 and 4
 # note: segment_id and id return the same value.. maybe we don't need to do the join?
-n_seg = find_concentration(1, df)
-pct_concentration = n_seg / num_segments
-cat("Avg. pct. of segments to explain 100% of crime: ", pct_concentration*100, "%")
-
 n_seg = find_concentration(0.5, df)
 pct_concentration = n_seg / num_segments
 cat("Avg. pct. of segments to explain 50% of crime: ", pct_concentration*100, "%")
@@ -112,12 +124,20 @@ for(year in years_in_data){
 }
 
 #convert raw counts to percentages
-#num_segments = 58000
 # TODO: put these three serieses on a single, two-y-axis plot (total crime vs. 50 and 25% lines)
 concentration_time_series$all_pct = (concentration_time_series$all / num_segments) * 100
 concentration_time_series$fifty_pct = (concentration_time_series$fifty / num_segments) * 100
 concentration_time_series$twentyfive_pct = (concentration_time_series$twentyfive / num_segments) * 100
 concentration_time_series = concentration_time_series[order(-concentration_time_series$years_in_data),]
+
+
+concentration_time_series = concentration_time_series[concentration_time_series$years_in_data > 2001,] #2001 data looks incomplete
+print(concentration_time_series)
+mean(concentration_time_series$all_pct)
+mean(concentration_time_series$fifty_pct)
+mean(concentration_time_series$twentyfive_pct)
+
+write.csv(concentration_time_series,"../Concentration_Levels/concentration_levels_chicago.csv")
 
 # params for crime concentration plot
 start_yr = 2002
@@ -153,8 +173,8 @@ mtext(side = 4, line = 3, 'Incidents Reported')
 
 
 legend("topleft",
-       legend=c("Total Crime","50%", "25%"),
-       lty=c(1,0), pch=c(NA, 16), col=c("black","red3", "blue"), cex=0.5)
+       legend=c("Total Crime", "100%", "50%", "25%"),
+       lty=c(1,0), pch=c(NA, 16), col=c("black", "orange", "red3", "blue"), cex=0.5)
 
 
 # how long do hotspots stay hot?

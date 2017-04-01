@@ -131,6 +131,10 @@ mean(concentration_time_series$all_pct)
 #cat(crimetype)
 print(concentration_time_series[concentration_time_series$years_in_data > 2007,])
 
+
+
+
+
 par(mar = c(5,5,2,5))
 with(concentration_time_series, plot(concentration_time_series$years_in_data, 
                                      concentration_time_series$fifty_pct, type="l", 

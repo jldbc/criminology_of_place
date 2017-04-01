@@ -1,8 +1,8 @@
 library(reshape2)
 library(cowplot)
 setwd("/Users/jamesledoux/Documents/Research/Thesis/Data/")
-df1 = read.csv("concentration_comparisons_violent.csv", stringsAsFactors=FALSE)
-df2 = read.csv("concentration_comparisons_all.csv", stringsAsFactors=FALSE)
+df1 = read.csv("concentration_comparisons_violent2.csv", stringsAsFactors=FALSE)
+df2 = read.csv("concentration_comparisons_all2.csv", stringsAsFactors=FALSE)
 df1[df1$X=='100pct', 'X'] = '100'
 df1[df1$X=='50pct', 'X'] = '50'
 df1[df1$X=='25pct', 'X'] = '25'
@@ -37,8 +37,8 @@ ggplot(data.m, aes(variable, value)) +
 
 ##### trying the same plots w/o the 100% level
 
-df1 = read.csv("concentration_comparisons_violent.csv", stringsAsFactors=FALSE)
-df2 = read.csv("concentration_comparisons_all.csv", stringsAsFactors=FALSE)
+df1 = read.csv("concentration_comparisons_violent2.csv", stringsAsFactors=FALSE)
+df2 = read.csv("concentration_comparisons_all2.csv", stringsAsFactors=FALSE)
 df1[df1$X=='100pct', 'X'] = '100'
 df1[df1$X=='50pct', 'X'] = '50'
 df1[df1$X=='25pct', 'X'] = '25'

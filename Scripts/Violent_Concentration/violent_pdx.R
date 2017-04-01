@@ -32,6 +32,9 @@ cat("pct of crime at intersections: ", (before_crimes-nrow(df))/before_crimes)
 #unique id for blocks (temporarily replacement for the joined data, since the join isn't working right yet)
 df <- transform(df,segment_id=as.numeric(factor(Address)))
 
+# get rid of observations with no address (geocoded to the police precinct address)
+df = df[df$segment_id !=57009,]
+
 df$Year = as.numeric(substr(df$ReportDate, nchar(df$ReportDate)-1, nchar(df$ReportDate)))
 df = df[df$Year != 11,]   #comes from a different source
 df = df[df$Year != 13,]

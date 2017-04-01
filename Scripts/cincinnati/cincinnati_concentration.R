@@ -28,6 +28,25 @@ df$Year = as.numeric(substr(df$Year, 1, 4))
 df = df[df$Year > 2010,]
 df = df[df$Year < 2016,]
 
+#t = table(df$Offense)
+#t[t>50]
+
+# from weisburd: 
+# property (e.g., burglary and property destruction), personal (e.g., homicide, assault, and robbery), 
+# disorder (e.g., graffiti and abandoned vehicles), drugs, prostitution, and traffic-related crimes 
+# (e.g., drunk driving and hit and run)
+
+keeps = c('Aggravated Burglary', 'AGGRAVATED BURGLARY', 'Burglary', 'BURGLARY', 'VANDALISM', 'Vandalism', 
+          'MURDER -(Willful Killing)', 'Murder -(Willful Killing)', 'Assault -(Aggravated Assault)', 'ASSAULT -(Aggravated Assault)',
+          'Assault -(Simple Assault)', 'ASSAULT -(Simple Assault)', 'Domestic Violence -(Aggravated Assault)', 'DOMESTIC VIOLENCE -(Aggravated Assault)',
+          'Domestic Violence -(Simple Assault)', 'DOMESTIC VIOLENCE -(Simple Assault)', 'ENDANGERING CHILDREN -(Simple Assault)',
+          'Felonious Assault -(Aggravated Assault)', 'FELONIOUS ASSAULT -(Aggravated Assault)', 'Felonious Assault -(Simple Assault)',
+          'Rape -(Forcible Rape)', 'RAPE -(Forcible Rape)', 'RAPE -(Simple Assault)', 'Aggravated Robbery', 'AGGRAVATED ROBBERY', 
+          'Aggravated Robbery _ deadly weapon on or about suspect, control, display, brandish, indicate possession, or use weapon-',
+          'Robbery', 'ROBBERY', 'VANDALISM', 'Vandalism', 'UNAUTHORIZED USE OF MOTOR VEHICLE', 'Unauthorized Use of Motor Vehicle'
+          )  #no drugs? prostitution/pimping? 
+df = df[df$Offense %in% keeps,]
+
 #unique id for blocks (temporarily replacement for the joined data, since the join isn't working right yet)
 df <- transform(df,segment_id=as.numeric(factor(Block)))
 
@@ -126,6 +145,10 @@ concentration_time_series = concentration_time_series[order(-concentration_time_
 mean(concentration_time_series$twentyfive_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$all_pct)
+print(concentration_time_series)
+
+write.csv(concentration_time_series, '../Concentration_Levels/concentration_levels_cincinnati.csv')
+
 # params for crime concentration plot
 start_yr = 2012
 end_yr = 2015
@@ -164,7 +187,7 @@ legend("topleft",
 
 
 # How long do hotspots stay hot?
-y_0 = 2003 #starting year
+y_0 = 2012 #starting year
 pct_concentration = 0.25
 n = find_concentration(pct_concentration, df[df['Year']==y_0,])
 dffreq = df[df$Year==y_0,]
@@ -173,7 +196,7 @@ segment_ids_y0 = as.numeric(names(frequencies)[1:n])
 
 vals = c()
 
-for(j in y_0:2016){
+for(j in y_0:2015){
   n_ = find_concentration(pct_concentration, df[df['Year']==j,])
   dffreq = df[df$Year==j,]
   frequencies = sort(table(dffreq['segment_id']), decreasing=T)
@@ -185,23 +208,6 @@ for(j in y_0:2016){
 }
 
 plot(vals)
-
-
-###### plot the points existing on segments accounting for 50%, 25% of total crime ########
-yr = 2014
-temp_df = df[df$Year==yr,]
-n_seg_50pct = find_concentration(.5, temp_df)
-n_seg_25pct = find_concentration(.25, temp_df)
-frequencies = sort(table(temp_df['segment_id']), decreasing=T)
-hotspot_segment_ids_50pct = names(frequencies)[1:n_seg_50pct]
-hotspot_segment_ids_25pct = names(frequencies)[1:n_seg_25pct]
-
-temp_df = temp_df[temp_df$segment_id %in% hotspot_segment_ids_25pct,]
-library(ggmap)
-#ggmap(seattle)
-
-mapdf = temp_df[,c("Latitude","Longitude")]
-mapdf <- na.omit(mapdf)
-#ggmap(seattle) 
-qmap("chicago", zoom = 11) + geom_point(data=mapdf, aes(x=Longitude, y=Latitude), color="red", size=1, alpha=1)
-
+vals_df = data.frame(vals)
+vals_df$year = 2012:2015
+write.csv(vals_df, "../Dropoff_Rates/dropoff_cincinnati.csv")

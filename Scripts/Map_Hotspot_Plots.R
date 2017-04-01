@@ -10,6 +10,8 @@ library(tidyr)
 library(ggmap)
 library(MASS)
 
+
+
 # needs:
 # get segment centroids (share that piece of code with the facilities script)
 # geojoin to get id from shapefile in this 
@@ -42,55 +44,9 @@ df = df[!is.na(df$Block),]
 df <- transform(df,segment_id=as.numeric(factor(Block)))
 
 #get segment centroids (or at least something close to these)
-# procedure:
-# keep only unique lat/long pairs
-# get center point by segment ID (approximately the street segment centroid)
-# join these onto original df by segment id
-# re-run this for those observations w/ null centroid values w/o the uniqueness constraint added and use the resulting centroids for those rows
-temp_df_no_repeat_locations = df[!duplicated(df$Location),]
-lats = aggregate(Latitude ~ segment_id, temp_df_no_repeat_locations, mean)  # you're allowed to take means of lat/long for centroids, right? double check
-longs = aggregate(Longitude ~ segment_id, temp_df_no_repeat_locations, mean)
-
-df = merge(x=df, y=lats, by='segment_id', all.x=TRUE)
-df = merge(x=df, y=longs, by='segment_id', all.x=TRUE)
-
-#fix some naming issues caused by the merge
-df$centroid_latitude = df$Latitude.y
-df$centroid_longitude = df$Longitude.y
-df$Longitude = df$Longitude.x
-df$Latitude = df$Latitude.x
-df$Latitude.x = NULL
-df$Longitude.x = NULL
-df$Latitude.y = NULL
-df$Longitude.y = NULL
-
-
-#now to clean up the ones this missed
-df_missing_centroids = df[is.na(df$centroid_latitude),]
-lats = aggregate(Latitude ~ segment_id, df_missing_centroids, mean)  # you're allowed to take means of lat/long for centroids, right? double check
-longs = aggregate(Longitude ~ segment_id, df_missing_centroids, mean)
-
-df = merge(x=df, y=lats, by='segment_id', all.x=TRUE)
-df = merge(x=df, y=longs, by='segment_id', all.x=TRUE)
-
-df[is.na(df$centroid_latitude), 'centroid_latitude'] = df[is.na(df$centroid_latitude), 'Latitude.y']
-df[is.na(df$centroid_longitude), 'centroid_longitude'] = df[is.na(df$centroid_longitude), 'Longitude.y']
-# df[is.na(df$Longitude), 'Longitude'] = df[is.na(df$Longitude), 'Longitude.x'] 
-# df[is.na(df$Latitude), 'Latitude'] = df[is.na(df$Latitude), 'Latitude.x'] 
-df$Latitude = df$Latitude.x
-df$Longitude = df$Longitude.x
-df$Latitude.x = NULL
-df$Longitude.x = NULL
-df$Latitude.y = NULL
-df$Longitude.y = NULL
-
-#tests to see if this worked as intended:
-# head(df)
-# names(df)
-# nrow(df)
-# head(df[is.na(df$centroid_longitude),])
-# head(df[is.na(df$Latitude),])
-# View(df)
+temp_df_no_repeat_locations = df[unique(df$Location),]
+df$centroid_latitude = aggregate(Latitude ~ segment_id, df, mean)  # you're allowed to take means of lat/long for centroids, right? double check
+df$centroid_longitude = aggregate(Longitude ~ segment_id, df, mean)
 
 #hotspot identifiers
 df$is_hotspot_25 = 0 
@@ -152,13 +108,9 @@ df = df[!is.na(df$Latitude),]
 # - joined on features for number of [type] facilities within y ft. 
 
 #only keep the columns we'll need
-df = df[, c("Block","segment_id", "CommunityArea", 'centroid_longitude', 'centroid_latitude', "is_hotspot_25", "is_hotspot_50", "count", "Year")]
+df = df[, c("Block","segment_id", "CommunityArea", "Latitude", "Longitude", "is_hotspot_25", "is_hotspot_50", "count", "Year")]
 #counts = cbind(aggregate(count~segment_id, sum, data=df[df$Year==hotspot_year,]), 
 #               table(df[df$Year==hotspot_year, 'segment_id'])) #only cont observations from the target year
-df$Latitude = df$centroid_latitude
-df$Longitude = df$centroid_longitude
-df$centroid_latitude = NULL
-df$centroid_longitude = NULL
 
 ####
 # DATA FORMATTING PROCEDURE:
@@ -176,6 +128,3 @@ new_df[is.na(new_df$n), 'n'] = 0
 columns_to_keep = c('segment_id', 'Block', 'CommunityArea', 'Latitude', 'Longitude',
                     'is_hotspot_25', 'is_hotspot_50', 'n')
 new_df = new_df[, columns_to_keep]
-
-
-#now: geojoin, plot all (black), overlay hotspots (red)

@@ -131,6 +131,9 @@ mean(concentration_time_series$twentyfive_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$all_pct)
 
+
+
+
 # params for crime concentration plot
 start_yr = 2007
 end_yr = 2016

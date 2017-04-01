@@ -1,8 +1,7 @@
 #########################################
-# SEATTLE
+# DC (note: missing narcotics and traffic crime)
 #########################################
 
-# Replication and extension of Weisburd's experiments of crime at place in Seattle
 # Author: James LeDoux
 # Jan. 9 2017
 library(rgdal)
@@ -10,23 +9,33 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
-###################################
-# SEATTLE 
-###################################
 
-setwd("/Users/jamesledoux/Documents/Research/Thesis/Data/Seattle")
+setwd("/Users/jamesledoux/Documents/Research/Thesis/Data/DC")
 
 
-#cleaned and merged DataFrame
-df = fread("seattle.csv", data.table=FALSE)
+#read in each year's dataframe, rbind into one single df
+df1 = fread("Crime_Incidents__2011.csv", data.table=FALSE)
+df1$Year = 2011
+df2 = fread("Crime_Incidents__2012.csv", data.table=FALSE)
+df2$Year = 2012
+df3 = fread("Crime_Incidents__2013.csv", data.table=FALSE)
+df3$Year = 2013
+df4 = fread("Crime_Incidents__2014.csv", data.table=FALSE)
+df4$Year = 2014
+df5 = fread("Crime_Incidents__2015.csv", data.table=FALSE)
+df5$Year = 2015
+df6 = fread("Crime_Incidents__2016.csv", data.table=FALSE)
+df6$Year = 2016
+
+df = do.call("rbind", list(df1, df2, df3, df4, df5, df6))
+
 total_num_reports = nrow(df)
-#drop NA years
-df = df[df$Year != "NA",]
+
 #drop crime at intersections 
-df = df[!grepl('/', df$`Hundred Block Location`),] #get rid of intersections
+df = df[!grepl('AND', df$BLOCKSITEADDRESS),] #get rid of intersections
 reports_sans_intersections = nrow(df)
 pct_crime_at_intersections = 1 - (reports_sans_intersections/total_num_reports)
-cat("Percent of crime at intersections in Seattle: ", pct_crime_at_intersections)
+cat("Percent of crime at intersections in DC: ", pct_crime_at_intersections)
 
 
 #df = fread("/Users/jamesledoux/Documents/seattle_merged_with_geo2.csv", data.table=FALSE)
@@ -39,34 +48,37 @@ names(df) <- gsub(x = names(df),
                   replacement = "")
 
 #unique id for blocks (temporarily replacement for the joined data, since the join isn't working right yet)
-df <- transform(df,segment_id=as.numeric(factor(HundredBlockLocation)))
+df <- transform(df,segment_id=as.numeric(factor(BLOCKSITEADDRESS)))
 
-# get total number of residential + arterial street segments in Seattle 
-# 24331 for now.. actual number should be a little smaller than this according to Weisburd
-# note: this will be slow since it loads and fortifies the geojson file
-transportation.shapefile = readOGR(dsn="seattle_centerline.geojson", layer="OGRGeoJSON", p4s="+proj=tmerc +ellps=WGS84")
-smaller_shapefile = transportation.shapefile[which(transportation.shapefile$SND_FEACOD %in% list(1,5)),]
-smaller_shapefile = smaller_shapefile[which(smaller_shapefile$SEGMENT_TY %in% list(1,5)),]
-smaller_shapefile = smaller_shapefile[which(smaller_shapefile$CITYCODE==1),]
-smaller_shapefile = smaller_shapefile[which(smaller_shapefile$ST_CODE %in% list(0,1,2,6,7,8)),]
+# Street grid info
+streets = fread("Street_Centerlines.csv", data.table=FALSE)
+#drops = c(0,1,9,10,14)
+#streets = streets[!streets$CLASS %in% drops,]
 
-#convert to standard coordinate dataframe
-transportation.table <- fortify(smaller_shapefile)
-num_segments = length(unique(transportation.table$id))
+num_segments = length(unique(streets$STREETSEGID)) #come back to this if results seem off. there's another id that might be it.
 cat("Number of street segments in Seattle: ", num_segments)
-avg_segment_length = mean(transportation.shapefile@data$GIS_SEG_LE)
-cat("mean street segment length is ", avg_segment_length, " feet")
 
+avg_segment_length = mean(streets$SHAPE_Length, na.rm=TRUE)
+cat("mean street segment length is ", avg_segment_length, " feet")
 
 backup_df = df
 
 # let's see which crimes happen the most (uncomment line below)
 #sort(table(df$SummarizedOffenseDescription), decreasing=T)  #if tables not geojoined
 
-violent_crimes = c("ASSAULT", "ROBBERY", "HOMICIDE")
-df = df[df$SummarizedOffenseDescription %in% violent_crimes,]
+# from weisburd: 
+# property (e.g., burglary and property destruction), personal (e.g., homicide, assault, and robbery), 
+# disorder (e.g., graffiti and abandoned vehicles), drugs, prostitution, and traffic-related crimes 
+# (e.g., drunk driving and hit and run)
+# table(df$OFFENSE
+#keeps = c('ARSON', 'BURGLARY', 'HOMICIDE', 'ASSAULT W/DANGEROUS WEAPON', 'ROBBERY', 'SEX ABUSE') #DRUGS, TRAFFIC? 
+keeps = c('HOMICIDE', 'ASSAULT W/DANGEROUS WEAPON', 'ROBBERY', 'SEX ABUSE') #violent keeps
+
+
+df = df[df$OFFENSE %in% keeps,]
+
 #see the names of the worst street segments (mostly curious if I'm still picking up traffic offenses on highways)
-sort(table(df$HundredBlockLocation), decreasing=T)
+#sort(table(df$HundredBlockLocation), decreasing=T)
 
 #for(crimetype in c('CAR PROWL', 'BURGLARY', 'OTHER PROPERTY', 'PROPERTY DAMAGE', 
 #                   'VEHICLE THEFT', 'FRAUD', 'ASSAULT', 'SHOPLIFTING', 'THREATS',
@@ -150,27 +162,30 @@ concentration_time_series = concentration_time_series[order(-concentration_time_
 #fix right axis. rotate the labels andshow the full number (no 'e' notation)
 #cat(crimetype)
 print(concentration_time_series[concentration_time_series$years_in_data > 2007,])
-concentration_time_series = concentration_time_series[concentration_time_series$years_in_data > 2007 & concentration_time_series$years_in_data < 2016,]
+concentration_time_series = concentration_time_series[concentration_time_series$years_in_data > 2007 & concentration_time_series$years_in_data <= 2016,]
 mean(concentration_time_series$twentyfive_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$all_pct)
 
+  
+write.csv(concentration_time_series, '../Concentration_Levels/concentration_levels_dc.csv')
+
 par(mar = c(5,5,2,5))
 with(concentration_time_series, plot(concentration_time_series$years_in_data, 
                                      concentration_time_series$fifty_pct, type="l", 
-                                     col="red3", xlim=c(2008,2015), ylim=c(0,20), 
-                                     ylab="Concentration (%)", xlab='Year'))
+                                     col="red3", xlim=c(2011,2016), ylim=c(0,50), 
+                                     ylab="Concentration", xlab='Year'))
 par(new = T)
 with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive_pct
-                                     , pch=16, axes=F, xlab=NA, ylim=c(0,20), ylab=NA, 
-                                     col='blue', type='l', xlim=c(2008,2015)))
+                                     , pch=16, axes=F, xlab=NA, ylim=c(0,50), ylab=NA, 
+                                     col='blue', type='l', xlim=c(2011,2016)))
 par(new = T)
-#with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all
-#                                     , pch=16, axes=F, xlab=NA, ylim=c(0,.5), ylab=NA,
-#                                     col='orange', type='l', xlim=c(2008,2016)))
+with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all_pct
+                                     , pch=16, axes=F, xlab=NA, ylim=c(0,50), ylab=NA,
+                                     col='orange', type='l', xlim=c(2011,2016)))
 par(new = T)
 with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$total_crime
-                                     , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(2008,2015)))
+                                     , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(2011,2016)))
 axis(side = 4)
 mtext(side = 4, line = 3, 'Incidents Reported')
 #}
@@ -182,7 +197,7 @@ legend("topleft",
 
 
 # How long do hotspots stay hot?
-y_0 = 2008 #starting year
+y_0 = 2011 #starting year
 pct_concentration = 0.25
 n = find_concentration(pct_concentration, df[df['Year']==y_0,])
 dffreq = df[df$Year==y_0,]
@@ -203,7 +218,9 @@ for(j in y_0:2016){
 }
 
 plot(vals)
-
+vals_df = data.frame(vals)
+vals_df$year = 2011:2016
+write.csv(vals_df, "../Dropoff_Rates/dropoff_dc.csv")
 
 ###### plot the points existing on segments accounting for 50%, 25% of total crime ########
 
@@ -213,12 +230,11 @@ n_seg_25pct = find_concentration(.25, temp_df)
 hotspot_segment_ids_50pct = names(frequencies)[1:n_seg_50pct]
 hotspot_segment_ids_25pct = names(frequencies)[1:n_seg_25pct]
 
-temp_df = temp_df[temp_df$segment_id %in% hotspot_segment_ids_50pct,]
+temp_df = temp_df[temp_df$segment_id %in% hotspot_segment_ids_25pct,]
 library(ggmap)
 #ggmap(seattle)
 
 mapdf = temp_df[,c("Latitude","Longitude")]
 mapdf <- na.omit(mapdf)
 #ggmap(seattle) 
-qmap("seattle", zoom = 12) + geom_point(data=mapdf, aes(x=Longitude, y=Latitude), color="red", size=1, alpha=1)
-
+qmap("seattle", zoom = 13) + geom_point(data=mapdf, aes(x=Longitude, y=Latitude), color="red", size=1, alpha=1)

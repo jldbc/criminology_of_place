@@ -415,23 +415,51 @@ for(i in 1:ncol(new_df_merged)){
   new_df[is.na(new_df_merged[,i]), i] <- mean(new_df_merged[,i], na.rm = TRUE)
 }
 
+#new_df_merged = read.csv("chicago_processed_data.csv")  #skip the processing
 new_df_merged = new_df_merged[new_df_merged$CommunityArea != 0,]
 
-all_features_count = "n ~ schools_400ft + schools_800ft + subway_400ft + subway_800ft + bars_400ft + bars_800ft + \
-                      log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + \
-bus_stops_400ft + bus_stops_800ft + groceries_400ft + groceries_800ft + senior_centers_400ft + senior_centers_800ft + \
-parks_400ft + parks_800ft + PERCENT.OF.HOUSING.CROWDED + PERCENT.AGED.16..UNEMPLOYED + PERCENT.AGED.UNDER.18.OR.OVER.64 + \
-HARDSHIP.INDEX + PER.CAPITA.INCOME + PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA + PERCENT.HOUSEHOLDS.BELOW.POVERTY + \
-businesses_400ft + businesses_800ft + restaurants_400ft + restaurants_800ft + parking_garagess_400ft + \
-parking_garages_800ft + liquor_stores_400ft + liquor_storess_800ft + daycares_400ft + daycares_800ft + \
-animal_care_400ft + animal_care_800ft + gas_stations_400ft + gas_stations_800ft + pawn_400ft + pawn_800ft + \
-arts_venues_400ft + arts_venues_800ft + graffiti_400ft + graffiti_800ft + X5_9 + X10_14 + X15_19 + X20_24 + \
+# removed ' + PERCENT.AGED.UNDER.18.OR.OVER.64'
+all_features_count = "n ~ schools_400ft + schools_800ft + subway_400ft + subway_800ft + bars_400ft + bars_800ft + 
+                      log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + 
+bus_stops_400ft + bus_stops_800ft + groceries_400ft + groceries_800ft + senior_centers_400ft + senior_centers_800ft + 
+parks_400ft + parks_800ft + PERCENT.OF.HOUSING.CROWDED + PERCENT.AGED.16..UNEMPLOYED + 
+HARDSHIP.INDEX + PER.CAPITA.INCOME + PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA + PERCENT.HOUSEHOLDS.BELOW.POVERTY + 
+businesses_400ft + businesses_800ft + restaurants_400ft + restaurants_800ft + parking_garagess_400ft + 
+parking_garages_800ft + liquor_stores_400ft + liquor_storess_800ft + daycares_400ft + daycares_800ft + 
+animal_care_400ft + animal_care_800ft + gas_stations_400ft + gas_stations_800ft + pawn_400ft + pawn_800ft + 
+arts_venues_400ft + arts_venues_800ft + graffiti_400ft + graffiti_800ft + X5_9 + X10_14 + X15_19 + X20_24 + 
 X25_29 + X30_34  + X35_39 + X40_44 + X45_49 + X50_54 + X55_59 + X60_64 + X65_69 + X70_74 + X75_79 + X80_84 + X85_plus"
 
 
-all_features_count = "n ~ X20_24 + X85_plus"
+all_features_binary_25 = "is_hotspot_25 ~ schools_400ft + schools_800ft + subway_400ft + subway_800ft + bars_400ft + bars_800ft + 
+                      log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + 
+bus_stops_400ft + bus_stops_800ft + groceries_400ft + groceries_800ft + senior_centers_400ft + senior_centers_800ft + 
+parks_400ft + parks_800ft + PERCENT.OF.HOUSING.CROWDED + PERCENT.AGED.16..UNEMPLOYED + 
+HARDSHIP.INDEX + PER.CAPITA.INCOME + PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA + PERCENT.HOUSEHOLDS.BELOW.POVERTY + 
+businesses_400ft + businesses_800ft + restaurants_400ft + restaurants_800ft + parking_garagess_400ft + 
+parking_garages_800ft + liquor_stores_400ft + liquor_storess_800ft + daycares_400ft + daycares_800ft + 
+animal_care_400ft + animal_care_800ft + gas_stations_400ft + gas_stations_800ft + pawn_400ft + pawn_800ft + 
+arts_venues_400ft + arts_venues_800ft + graffiti_400ft + graffiti_800ft + X5_9 + X10_14 + X15_19 + X20_24 + 
+X25_29 + X30_34  + X35_39 + X40_44 + X45_49 + X50_54 + X55_59 + X60_64 + X65_69 + X70_74 + X75_79 + X80_84 + X85_plus"
+
+all_features_binary_50 = "is_hotspot_25 ~ schools_400ft + schools_800ft + subway_400ft + subway_800ft + bars_400ft + bars_800ft + 
+                      log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + 
+bus_stops_400ft + bus_stops_800ft + groceries_400ft + groceries_800ft + senior_centers_400ft + senior_centers_800ft + 
+parks_400ft + parks_800ft + PERCENT.OF.HOUSING.CROWDED + PERCENT.AGED.16..UNEMPLOYED + 
+HARDSHIP.INDEX + PER.CAPITA.INCOME + PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA + PERCENT.HOUSEHOLDS.BELOW.POVERTY + 
+businesses_400ft + businesses_800ft + restaurants_400ft + restaurants_800ft + parking_garagess_400ft + 
+parking_garages_800ft + liquor_stores_400ft + liquor_storess_800ft + daycares_400ft + daycares_800ft + 
+animal_care_400ft + animal_care_800ft + gas_stations_400ft + gas_stations_800ft + pawn_400ft + pawn_800ft + 
+arts_venues_400ft + arts_venues_800ft + graffiti_400ft + graffiti_800ft + X5_9 + X10_14 + X15_19 + X20_24 + 
+X25_29 + X30_34  + X35_39 + X40_44 + X45_49 + X50_54 + X55_59 + X60_64 + X65_69 + X70_74 + X75_79 + X80_84 + X85_plus"
+
+
+
+#all_features_count = "n ~ X20_24 + X85_plus"
 
 summary(lm(data=new_df_merged, all_features_count))
+summary(glm(data=new_df_merged, all_features_count), family='poisson')
+summary(glm(data=new_df_merged, all_features_binary_25), family='binomial')
 
 
 ### log wages??? ####

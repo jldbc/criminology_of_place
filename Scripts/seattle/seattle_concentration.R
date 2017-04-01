@@ -9,8 +9,6 @@ library(rgdal)
 library(data.table)
 library(dplyr)
 library(ggplot2)
-library(crimCV)
-
 
 ###################################
 # SEATTLE 
@@ -65,11 +63,23 @@ backup_df = df
 # let's see which crimes happen the most (uncomment line below)
 #sort(table(df$SummarizedOffenseDescription), decreasing=T)  #if tables not geojoined
 
-#see the names of the worst street segments (mostly curious if I'm still picking up traffic offenses on highways)
-sort(table(df$HundredBlockLocation), decreasing=T)
+# from weisburd: 
+# property (e.g., burglary and property destruction), personal (e.g., homicide, assault, and robbery), 
+# disorder (e.g., graffiti and abandoned vehicles), drugs, prostitution, and traffic-related crimes 
+# (e.g., drunk driving and hit and run)
 
-#let's remove car prowl as a category for now, since I can't drop highways without finding their names or joining the shapefile
-df = df[df$SummarizedOffenseDescription != 'CAR PROWL',]
+keeps = c("BURGLARY", "BURGLARY-SECURE PARKING-RES", "OTHER PROPERTY", "PROPERTY DAMAGE", 'HOMICIDE', 'ASSAULT', 'ROBBERY', 'NARCOTICS',
+          'PROSTUTUTION', 'CAR PROWL', 'DUI', 'TRAFFIC') #'VEHICLE THEFT'
+
+
+#keeps = c("ROBBERY", "PUBLIC NUISANCE", "OBSTRUCT", "DISPUTE", "DISORDERLY CONDUCT", 
+#          "MAIL THEFT", "PICKPOCKET", "BIKE THEFT", "SHOPLIFTING", "DISTURBANCE", "PURSE SNATCH", "THEFT OF SERVICES", 
+#          "WEAPON", "ASSAULT", "RECKLESS BURNING", "FIREWORK", "BURGLARY", "BURGLARY-SECURE PARKING-RES",
+#          "PROSTITUTION", "PORNOGRAPHY", "HOMICIDE", "NARCOTICS", "FRAUD", "EMBEZZLE", "OTHER PROPERTY")  #WHERE IS ARSON "EMBEZZLE"
+
+df = df[df$SummarizedOffenseDescription %in% keeps,]
+#see the names of the worst street segments (mostly curious if I'm still picking up traffic offenses on highways)
+#sort(table(df$HundredBlockLocation), decreasing=T)
 
 #for(crimetype in c('CAR PROWL', 'BURGLARY', 'OTHER PROPERTY', 'PROPERTY DAMAGE', 
 #                   'VEHICLE THEFT', 'FRAUD', 'ASSAULT', 'SHOPLIFTING', 'THREATS',
@@ -106,9 +116,18 @@ find_concentration = function(percent_of_all_crime, df){
 # note: segment_id and id return the same value.. maybe we don't need to do the join?
 n_seg = find_concentration(0.5, df)
 pct_concentration = n_seg / num_segments
+cat("Avg. pct. of segments to explain 50% of crime: ", pct_concentration*100, "%")
+
+n_seg = find_concentration(0.25, df)
+pct_concentration = n_seg / num_segments
+cat("Avg. pct. of segments to explain 25% of crime: ", pct_concentration*100, "%")
 
 
 #### DOES THE LAW OF CRIME CONCENTRATION APPLY ACROSS TIME? ####
+df = df[df$Year != "NA",]
+df = df[df$Year != "NA",]
+df = df[df$Year != "NA",]
+df = df[df$Year != "NA",]
 df = df[df$Year != "NA",]
 df = df[df$Year != "NA",]
 years_in_data = unique(df$Year)
@@ -136,31 +155,37 @@ for(year in years_in_data){
 
 #convert raw counts to percentages
 # TODO: put these three serieses on a single, two-y-axis plot (total crime vs. 50 and 25% lines)
-concentration_time_series$all = concentration_time_series$all / num_segments
-concentration_time_series$fifty = concentration_time_series$fifty / num_segments
-concentration_time_series$twentyfive = concentration_time_series$twentyfive / num_segments
+concentration_time_series$all_pct = (concentration_time_series$all / num_segments) * 100
+concentration_time_series$fifty_pct = (concentration_time_series$fifty / num_segments)*100
+concentration_time_series$twentyfive_pct = (concentration_time_series$twentyfive / num_segments)*100
 concentration_time_series = concentration_time_series[order(-concentration_time_series$years_in_data),]
 
 #fix right axis. rotate the labels andshow the full number (no 'e' notation)
 #cat(crimetype)
 print(concentration_time_series[concentration_time_series$years_in_data > 2007,])
+concentration_time_series = concentration_time_series[concentration_time_series$years_in_data > 2007 & concentration_time_series$years_in_data < 2016,]
+mean(concentration_time_series$twentyfive_pct)
+mean(concentration_time_series$fifty_pct)
+mean(concentration_time_series$all_pct)
+
+write.csv(concentration_time_series, "../Concentration_Levels/concentration_levels_seattle.csv")
 
 par(mar = c(5,5,2,5))
 with(concentration_time_series, plot(concentration_time_series$years_in_data, 
-                                     concentration_time_series$fifty, type="l", 
-                                     col="red3", xlim=c(2008,2016), ylim=c(0,.5), 
+                                     concentration_time_series$fifty_pct, type="l", 
+                                     col="red3", xlim=c(2008,2015), ylim=c(0,50), 
                                      ylab="Concentration", xlab='Year'))
 par(new = T)
-with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive
-                                     , pch=16, axes=F, xlab=NA, ylim=c(0,.5), ylab=NA, 
-                                     col='blue', type='l', xlim=c(2008,2016)))
+with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$twentyfive_pct
+                                     , pch=16, axes=F, xlab=NA, ylim=c(0,50), ylab=NA, 
+                                     col='blue', type='l', xlim=c(2008,2015)))
 par(new = T)
-with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all
-                                     , pch=16, axes=F, xlab=NA, ylim=c(0,.5), ylab=NA,
-                                     col='orange', type='l', xlim=c(2008,2016)))
+with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$all_pct
+                                     , pch=16, axes=F, xlab=NA, ylim=c(0,50), ylab=NA,
+                                     col='orange', type='l', xlim=c(2008,2015)))
 par(new = T)
 with(concentration_time_series, plot(concentration_time_series$years_in_data, concentration_time_series$total_crime
-                                     , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(2008,2016)))
+                                     , pch=16, axes=F, xlab=NA, ylab=NA, type='l', lty=2, xlim=c(2008,2015)))
 axis(side = 4)
 mtext(side = 4, line = 3, 'Incidents Reported')
 #}
@@ -211,3 +236,4 @@ mapdf = temp_df[,c("Latitude","Longitude")]
 mapdf <- na.omit(mapdf)
 #ggmap(seattle) 
 qmap("seattle", zoom = 13) + geom_point(data=mapdf, aes(x=Longitude, y=Latitude), color="red", size=1, alpha=1)
+

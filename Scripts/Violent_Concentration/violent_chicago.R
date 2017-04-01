@@ -124,6 +124,11 @@ concentration_time_series$fifty_pct = (concentration_time_series$fifty / num_seg
 concentration_time_series$twentyfive_pct = (concentration_time_series$twentyfive / num_segments) * 100
 concentration_time_series = concentration_time_series[order(-concentration_time_series$years_in_data),]
 
+concentration_time_series = concentration_time_series[concentration_time_series$years_in_data > 2001,] #2001 data looks incomplete
+print(concentration_time_series)
+mean(concentration_time_series$fifty_pct)
+mean(concentration_time_series$twentyfive_pct)
+
 # params for crime concentration plot
 start_yr = 2002
 end_yr = 2016
