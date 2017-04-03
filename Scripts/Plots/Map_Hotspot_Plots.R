@@ -128,20 +128,19 @@ for(col in cols_to_merge[2:length(cols_to_merge)]){
   table_with_hotspots[,col] = as.factor(table_with_hotspots[,col])
 }
 
-#table_with_hotspots[is.na(table_with_hotspots$is_hotspot_25), 'is_hotspot_25'] = 0
-#let's hone in on one specific corner of the map
-#tab3 = transportation.table[order(transportation.table$lat, transportation.table$long, transportation.table$group),]
-#g = ggplot() + geom_path(data=tab3[1:30000,], aes(x=long, y=lat, group=group), size=0.2)
-#g = ggplot() + geom_path(data=tab3[1:30000,], aes(x=long, y=lat, group=group), size=0.2)
-palette(c("black","red"))
-plots_25_pct_level = c('x25_2003', 'x25_2004', 'x25_2005', 'x25_2006', 'x25_2007', 'x25_2008', 
-                       'x25_2009', 'x25_2010', 'x25_2011', 'x25_2012', 'x25_2013', 'x25_2014', 'x25_2015')
-for(yr in plots_25_pct_level){
-  par(mar = rep(2, 4)) #need this or else the figure is too large to plot
-  g = ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=yr), size=0.2) + scale_color_manual(values=c("#cccccc", "#e44849"))
-  print(g)
-}
-
+#palette(c("black","red"))
 par(mar = rep(2, 4)) #need this or else the figure is too large to plot
-ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2003), size=0.2) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2003), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2004), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2005), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2006), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2007), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2008), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2009), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2010), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2011), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2012), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2013), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2014), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
+ggplot() + geom_path(data=table_with_hotspots, aes(x=long, y=lat, group=group, col=x25_2015), size=0.3) + scale_color_manual(values=c("#cccccc", "#e44849"))
 
