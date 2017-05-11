@@ -127,6 +127,9 @@ concentration_time_series
 mean(concentration_time_series$twentyfive_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$all_pct)
+
+write.csv(concentration_time_series, 'Data/Concentration_Levels/violent_concentration_dallas.csv')
+
 #fix right axis. rotate the labels andshow the full number (no 'e' notation)
 #cat(crimetype)
 print(concentration_time_series[concentration_time_series$years_in_data > 2007,])
@@ -158,50 +161,3 @@ mtext(side = 4, line = 3, 'Incidents Reported')
 legend("topleft",
        legend=c("Total Crime", "100%", "50%", "25%"),
        lty=c(1,0), pch=c(NA, 16), col=c("black", "orange", "red3", "blue"), cex=0.5)
-
-
-# how long do hotspots stay hot?
-
-
-# How long do hotspots stay hot?
-y_0 = 2003 #starting year
-pct_concentration = 0.25
-n = find_concentration(pct_concentration, df[df['Year']==y_0,])
-dffreq = df[df$Year==y_0,]
-frequencies = sort(table(dffreq['segment_id']), decreasing=T)
-segment_ids_y0 = as.numeric(names(frequencies)[1:n])
-
-vals = c()
-
-for(j in y_0:2016){
-  n_ = find_concentration(pct_concentration, df[df['Year']==j,])
-  dffreq = df[df$Year==j,]
-  frequencies = sort(table(dffreq['segment_id']), decreasing=T)
-  segment_ids = as.numeric(names(frequencies)[1:n_])
-  n_matches = length(intersect(segment_ids_y0, segment_ids))
-  pct_still_hot = n_matches/n
-  print(pct_still_hot)
-  vals = c(vals, pct_still_hot)
-}
-
-plot(vals)
-
-
-###### plot the points existing on segments accounting for 50%, 25% of total crime ########
-yr = 2014
-temp_df = df[df$Year==yr,]
-n_seg_50pct = find_concentration(.5, temp_df)
-n_seg_25pct = find_concentration(.25, temp_df)
-frequencies = sort(table(temp_df['segment_id']), decreasing=T)
-hotspot_segment_ids_50pct = names(frequencies)[1:n_seg_50pct]
-hotspot_segment_ids_25pct = names(frequencies)[1:n_seg_25pct]
-
-temp_df = temp_df[temp_df$segment_id %in% hotspot_segment_ids_25pct,]
-library(ggmap)
-#ggmap(seattle)
-
-mapdf = temp_df[,c("Latitude","Longitude")]
-mapdf <- na.omit(mapdf)
-#ggmap(seattle) 
-qmap("chicago", zoom = 11) + geom_point(data=mapdf, aes(x=Longitude, y=Latitude), color="red", size=1, alpha=1)
-

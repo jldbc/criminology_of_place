@@ -522,4 +522,5 @@ legend("topleft",
 
 
 
-
+par(mar = rep(2, 4)) #need this or else the figure is too large to plot
+ggplot() + geom_path(data=transportation.table, aes(x=long, y=lat, group=group), size=0.2)

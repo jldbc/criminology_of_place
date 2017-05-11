@@ -139,6 +139,9 @@ concentration_time_series = concentration_time_series[order(-concentration_time_
 mean(concentration_time_series$twentyfive_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$all_pct)
+
+write.csv(concentration_time_series, '../Concentration_Levels/violent_concentration_cincinnati.csv')
+
 # params for crime concentration plot
 start_yr = 2012
 end_yr = 2015
@@ -198,23 +201,8 @@ for(j in y_0:2016){
 }
 
 plot(vals)
+vals = data.frame(vals)
+vals$city = 'Cincinnati'
+vals$year = y_0:2016
 
-
-###### plot the points existing on segments accounting for 50%, 25% of total crime ########
-yr = 2014
-temp_df = df[df$Year==yr,]
-n_seg_50pct = find_concentration(.5, temp_df)
-n_seg_25pct = find_concentration(.25, temp_df)
-frequencies = sort(table(temp_df['segment_id']), decreasing=T)
-hotspot_segment_ids_50pct = names(frequencies)[1:n_seg_50pct]
-hotspot_segment_ids_25pct = names(frequencies)[1:n_seg_25pct]
-
-temp_df = temp_df[temp_df$segment_id %in% hotspot_segment_ids_25pct,]
-library(ggmap)
-#ggmap(seattle)
-
-mapdf = temp_df[,c("Latitude","Longitude")]
-mapdf <- na.omit(mapdf)
-#ggmap(seattle) 
-qmap("chicago", zoom = 11) + geom_point(data=mapdf, aes(x=Longitude, y=Latitude), color="red", size=1, alpha=1)
-
+write.csv(vals, '../Dropoff_Rates/violent_dropoff_cincinnati.csv')

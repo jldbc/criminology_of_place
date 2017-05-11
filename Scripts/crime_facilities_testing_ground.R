@@ -1,10 +1,3 @@
-
-# today: add in other facilities info. add in graffiti. improve regressions (ie log transform for possion and dist to city center).
-#        try poisson. try small version of ZIP model. see about join for getting final ~5k segments I'm missing. save final data
-#        for easier reproduction / experimenting with the models. 
-
-
-
 #########################################
 # Facilities and Crime
 #########################################
@@ -16,7 +9,8 @@ library(geosphere)
 library(tidyr)
 library(ggmap)
 library(MASS)
-
+library(fmsb)
+library(car)
 
 # Data preparation approach:
 #   1. remove nonsensical rows (there are a few with obviously wrong lat/longs)
@@ -31,8 +25,10 @@ library(MASS)
 
 hotspot_year = 2015  #year we are modeling
 
+#setwd("/Users/jamesledoux/Documents/Research/Thesis/Data/chicago")
+#df = fread("chicago_2001_present.csv", data.table=FALSE)
 setwd("/Users/jamesledoux/Documents/Research/Thesis/Data/chicago")
-df = fread("chicago_2001_present.csv", data.table=FALSE)
+df = fread("chi_data_processed.csv", data.table=FALSE)
 
 #drop spaces in column names
 names(df) <- gsub(x = names(df),
@@ -204,7 +200,7 @@ new_df$bars_800ft = out
 
 
 #### proximity to city center ####  (might want to log-transform this)
-dists = distm(new_df[,c("Latitude", "Longitude")], c(41.8781, -87.6298))
+dists = distm(new_df[,c("Latitude", "Longitude")], c(41.8785, -87.6357)) #41.878562, -87.635770
 out = apply(dists, 1, function(x) sum(x<3218.69)) #within 2 mi of downtown
 new_df$dist_to_city_center = dists
 new_df$close_to_downtown = out
@@ -416,11 +412,12 @@ for(i in 1:ncol(new_df_merged)){
 }
 
 #new_df_merged = read.csv("chicago_processed_data.csv")  #skip the processing
-new_df_merged = new_df_merged[new_df_merged$CommunityArea != 0,]
+
+#write.csv(new_df_merged, 'chi_data_processed.csv')
 
 # removed ' + PERCENT.AGED.UNDER.18.OR.OVER.64'
 all_features_count = "n ~ schools_400ft + schools_800ft + subway_400ft + subway_800ft + bars_400ft + bars_800ft + 
-                      log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + 
+log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + 
 bus_stops_400ft + bus_stops_800ft + groceries_400ft + groceries_800ft + senior_centers_400ft + senior_centers_800ft + 
 parks_400ft + parks_800ft + PERCENT.OF.HOUSING.CROWDED + PERCENT.AGED.16..UNEMPLOYED + 
 HARDSHIP.INDEX + PER.CAPITA.INCOME + PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA + PERCENT.HOUSEHOLDS.BELOW.POVERTY + 
@@ -432,7 +429,7 @@ X25_29 + X30_34  + X35_39 + X40_44 + X45_49 + X50_54 + X55_59 + X60_64 + X65_69 
 
 
 all_features_binary_25 = "is_hotspot_25 ~ schools_400ft + schools_800ft + subway_400ft + subway_800ft + bars_400ft + bars_800ft + 
-                      log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + 
+log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + 
 bus_stops_400ft + bus_stops_800ft + groceries_400ft + groceries_800ft + senior_centers_400ft + senior_centers_800ft + 
 parks_400ft + parks_800ft + PERCENT.OF.HOUSING.CROWDED + PERCENT.AGED.16..UNEMPLOYED + 
 HARDSHIP.INDEX + PER.CAPITA.INCOME + PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA + PERCENT.HOUSEHOLDS.BELOW.POVERTY + 
@@ -443,7 +440,7 @@ arts_venues_400ft + arts_venues_800ft + graffiti_400ft + graffiti_800ft + X5_9 +
 X25_29 + X30_34  + X35_39 + X40_44 + X45_49 + X50_54 + X55_59 + X60_64 + X65_69 + X70_74 + X75_79 + X80_84 + X85_plus"
 
 all_features_binary_50 = "is_hotspot_25 ~ schools_400ft + schools_800ft + subway_400ft + subway_800ft + bars_400ft + bars_800ft + 
-                      log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + 
+log_dist_city_center + close_to_downtown + drug_centers_400ft + drug_centers_800ft + 
 bus_stops_400ft + bus_stops_800ft + groceries_400ft + groceries_800ft + senior_centers_400ft + senior_centers_800ft + 
 parks_400ft + parks_800ft + PERCENT.OF.HOUSING.CROWDED + PERCENT.AGED.16..UNEMPLOYED + 
 HARDSHIP.INDEX + PER.CAPITA.INCOME + PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA + PERCENT.HOUSEHOLDS.BELOW.POVERTY + 
@@ -456,12 +453,13 @@ X25_29 + X30_34  + X35_39 + X40_44 + X45_49 + X50_54 + X55_59 + X60_64 + X65_69 
 
 
 #all_features_count = "n ~ X20_24 + X85_plus"
-
+new_df_merged = df
 summary(lm(data=new_df_merged, all_features_count))
 summary(glm(data=new_df_merged, all_features_count), family='poisson')
-summary(glm(data=new_df_merged, all_features_binary_25), family='binomial')
+summary(glm(data=new_df_merged, all_features_binary_50), family='binomial')
 
-
+vif(lm(data=new_df_merged, all_features_count))
+#vif_func(in_frame=rand.vars,thresh=5,trace=T)
 ### log wages??? ####
 # non parametrics ?? #
 ## feature collinearity. . get count betwn 4 and 800 rather than <400 and <800 (there's an overlap here)

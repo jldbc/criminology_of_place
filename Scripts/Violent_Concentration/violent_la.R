@@ -172,6 +172,7 @@ mean(concentration_time_series$all_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$twentyfive_pct)
 
+write.csv(concentration_time_series, '../Concentration_Levels/violent_concentration_la.csv')
 # params for crime concentration plot
 start_yr = 2012
 end_yr = 2015
@@ -228,8 +229,11 @@ for(j in y_0:2015){
 }
 
 plot(vals)
+vals = data.frame(vals)
+vals$city = 'Los Angeles'
+vals$year = y_0:2015
 
-
+write.csv(vals, '../Dropoff_Rates/violent_dropoff_la.csv')
 ###### plot the points existing on segments accounting for 50%, 25% of total crime ########
 
 #first turn location column into seperate lat and long columns

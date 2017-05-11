@@ -129,6 +129,8 @@ print(concentration_time_series)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$twentyfive_pct)
 
+write.csv(concentration_time_series, "../Concentration_Levels/violent_concentration_chicago.csv")
+
 # params for crime concentration plot
 start_yr = 2002
 end_yr = 2016
@@ -193,6 +195,11 @@ for(j in y_0:2016){
 
 plot(vals)
 
+vals = data.frame(vals)
+vals$city = 'Chicago'
+vals$year = y_0:2016
+
+write.csv(vals, '../Dropoff_Rates/violent_dropoff_chicago.csv')
 
 ###### plot the points existing on segments accounting for 50%, 25% of total crime ########
 yr = 2014

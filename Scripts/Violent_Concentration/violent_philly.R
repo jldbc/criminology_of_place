@@ -139,6 +139,9 @@ concentration_time_series = concentration_time_series[concentration_time_series$
 mean(concentration_time_series$twentyfive_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$all_pct)
+
+write.csv(concentration_time_series, '../Concentration_Levels/violent_concentration_philadelphia.csv')
+
 #fix right axis. rotate the labels andshow the full number (no 'e' notation)
 #cat(crimetype)
 print(concentration_time_series[concentration_time_series$years_in_data > 2007,])
@@ -191,7 +194,11 @@ for(j in y_0:2016){
 }
 
 plot(vals)
+vals = data.frame(vals)
+vals$city = 'Philadelphia'
+vals$year = y_0:2016
 
+write.csv(vals, '../Dropoff_Rates/violent_dropoff_philadelphia.csv')
 
 ###### plot the points existing on segments accounting for 50%, 25% of total crime ########
 

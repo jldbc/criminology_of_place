@@ -143,6 +143,8 @@ mean(concentration_time_series$twentyfive_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$all_pct)
 
+write.csv(concentration_time_series, '../Concentration_Levels/violent_concentration_portland.csv')
+
 # params for crime concentration plot
 start_yr = 2004
 end_yr = 2013
@@ -199,6 +201,9 @@ for(j in y_0:13){
 
 plot(vals)  #so 2011 and 2014 are clearly endcoded different from the rest of the data. this is also why there are too many segments in the data (some are duplicates)
 
-
+vals = data.frame(vals)
+vals$city = 'Portland'
+vals$year = 2004:2013
+write.csv(vals, '../Dropoff_Rates/violent_dropoff_portland.csv')
 
 ## can't plot this unless i figure out how to plot coordinate data 

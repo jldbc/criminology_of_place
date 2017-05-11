@@ -155,6 +155,8 @@ mean(concentration_time_series$twentyfive_pct)
 mean(concentration_time_series$fifty_pct)
 mean(concentration_time_series$all_pct)
 
+write.csv(concentration_time_series, '../Concentration_Levels/violent_concentration_seattle.csv')
+
 par(mar = c(5,5,2,5))
 with(concentration_time_series, plot(concentration_time_series$years_in_data, 
                                      concentration_time_series$fifty_pct, type="l", 
@@ -203,7 +205,11 @@ for(j in y_0:2016){
 }
 
 plot(vals)
+vals = data.frame(vals)
+vals$city = 'Seattle'
+vals$year = y_0:2016
 
+write.csv(vals, '../Dropoff_Rates/violent_dropoff_seattle.csv')
 
 ###### plot the points existing on segments accounting for 50%, 25% of total crime ########
 
@@ -213,7 +219,7 @@ n_seg_25pct = find_concentration(.25, temp_df)
 hotspot_segment_ids_50pct = names(frequencies)[1:n_seg_50pct]
 hotspot_segment_ids_25pct = names(frequencies)[1:n_seg_25pct]
 
-temp_df = temp_df[temp_df$segment_id %in% hotspot_segment_ids_50pct,]
+temp_df = temp_df[temp_df$segment_id %in% hotspot_segment_ids_25pct,]
 library(ggmap)
 #ggmap(seattle)
 

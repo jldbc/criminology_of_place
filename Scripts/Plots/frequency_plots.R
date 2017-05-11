@@ -114,6 +114,9 @@ pdx$Year = as.numeric(substr(pdx$ReportDate, nchar(pdx$ReportDate)-1, nchar(pdx$
 pdx = pdx[pdx$Year != 11,]
 pdx = pdx[pdx$Year != 13,]
 
+police_stations = c(57009)
+pdx = pdx[!(pdx$segment_id %in% police_stations), ]
+pdx = pdx[pdx$MajorOffenseType!='Larceny',]
 freqs_pdx = pdx %>%
   group_by(segment_id) %>%
   summarise(n_crimes = n()) %>%
@@ -129,6 +132,7 @@ cin = fread("cincinnati/cincinnati_crime.csv", data.table=FALSE)
 names(cin) <- gsub(x = names(cin),
                   pattern = " ",
                   replacement = "")
+
 cin$Block = with(cin, paste0(BlockBegin, BlockEnd, StreetName))
 cin$Year = sub("^[^/]*", "", cin$OccurredOn)
 cin$Year = sub("/", "", cin$OccurredOn)
@@ -140,10 +144,14 @@ cin = cin[cin$Year < 2016,]
 
 cin <- transform(cin,segment_id=as.numeric(factor(Block)))
 
+police_stations = c(5144)
+cin = cin[!(cin$segment_id %in% police_stations),]
+
 freqs_cin = cin %>%
   group_by(segment_id) %>%
   summarise(n_crimes = n()) %>%
   arrange(desc(n_crimes))
+
 freqs_cin$ID = seq.int(nrow(freqs_cin))
 freqs_cin$city = 'Cincinnati'
 ################################# 
@@ -160,6 +168,8 @@ dal = dal[!is.na(dal$StreetName),]
 dal$Block = with(dal, paste0(StreetBlock, StreetName))
 dal = transform(dal,segment_id=as.numeric(factor(Block)))
 
+police_stations = c(10444, 65254)
+dal = dal[!(dal$segment_id %in% police_stations),]
 freqs_dal = dal %>%
   group_by(segment_id) %>%
   summarise(n_crimes = n()) %>%
@@ -231,14 +241,16 @@ freqs_sf$ID = (freqs_sf$ID-min(freqs_sf$ID))/(max(freqs_sf$ID)-min(freqs_sf$ID))
 
 
 #merge all dataframes into a single df
-frequencies = rbind(freqs_chi, freqs_cin, freqs_phi, freqs_pdx, freqs_la, freqs_dal, freqs_sf, freqs_sea)
+frequencies = rbind(freqs_chi, freqs_cin, freqs_phi, freqs_pdx)
 
 ggplot(frequencies, aes(ID, n_crimes)) + 
-  geom_bar() + facet_grid(. ~ city)
+  geom_point() + facet_grid(. ~ city)
   # + background_grid(major = 'y', minor = "none") + # add thin horizontal lines 
-  #panel_border()
+  # panel_border()
 
-
+frequencies = rbind(freqs_la, freqs_dal, freqs_sf, freqs_sea)
+ggplot(frequencies, aes(ID, n_crimes)) + 
+  geom_point() + facet_grid(. ~ city)
 
 
 

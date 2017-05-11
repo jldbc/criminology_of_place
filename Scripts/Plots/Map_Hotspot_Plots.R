@@ -14,6 +14,7 @@ library(cowplot)
 setwd("/Users/jamesledoux/Documents/Research/Thesis/Data/chicago")
 #df = fread("chicago_2001_present.csv", data.table=FALSE)
 df = fread('../../chicago_with_shapefile2.csv', data.table=FALSE)
+#View(df[,c('Block', 'STREET_NAM')])
 orig_df = df
 #now get the others, merge those ones on via the st. segment id (since these should all match)
 hotspot_years = 2003:2015
